@@ -16,6 +16,21 @@ commands:
     usage: /shrouded.register.sign <lobby_name>
     permission: shrouded.admin
     permission-message: You don't have permission to register signs.
+  "shrouded.register.arena":
+    description: Registers a region as an arena
+    usage: /shrouded.register.arena <arena_name> <x1> <y1> <z1> <x2> <y2> <z2> [world_name] [max_players]
+    permission: shrouded.admin
+    permission-message: You don't have permission to register arenas.
+  "shrouded.lobby.arena":
+    description: Links or unlinks an arena from a lobby's valid arenas list
+    usage: /shrouded.lobby.arena <add|remove> <lobby_name> <arena_name>
+    permission: shrouded.admin
+    permission-message: You don't have permission to manage lobby arenas.
+  "shrouded.lobby.countdown":
+    description: Sets the countdown timer (in seconds) for a lobby
+    usage: /shrouded.lobby.countdown <lobby_name> <seconds>
+    permission: shrouded.admin
+    permission-message: You don't have permission to manage lobby settings.
 
 permissions:
   shrouded.admin:

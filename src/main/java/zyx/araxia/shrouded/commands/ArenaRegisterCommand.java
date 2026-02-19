@@ -5,22 +5,23 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import zyx.araxia.shrouded.lobby.LobbyManager;
+import zyx.araxia.shrouded.lobby.ArenaManager;
 
-public class LobbyRegisterCommand implements CommandExecutor {
+public class ArenaRegisterCommand implements CommandExecutor {
 
     private final JavaPlugin plugin;
-    private final LobbyManager lobbyManager;
+    private final ArenaManager arenaManager;
 
-    public LobbyRegisterCommand(JavaPlugin plugin, LobbyManager lobbyManager) {
+    public ArenaRegisterCommand(JavaPlugin plugin, ArenaManager arenaManager) {
         this.plugin = plugin;
-        this.lobbyManager = lobbyManager;
+        this.arenaManager = arenaManager;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (sender == null) {
-            return false;
+            plugin.getLogger().warning("Received null CommandSender in ArenaRegisterCommand. This should not happen.");
+            return false; // Should never happen
         }
 
         if (!(sender instanceof Player player)) {
@@ -29,11 +30,11 @@ public class LobbyRegisterCommand implements CommandExecutor {
         }
 
         if (args.length < 7 || args.length > 9) {
-            sender.sendMessage("Usage: /shrouded.register.lobby <lobby_name> <x1> <y1> <z1> <x2> <y2> <z2> [world_name] [max_players]");
+            sender.sendMessage("Usage: /shrouded.register.arena <arena_name> <x1> <y1> <z1> <x2> <y2> <z2> [world_name] [max_players]");
             return true;
         }
 
-        String lobbyName = args[0];
+        String arenaName = args[0];
         int x1, y1, z1, x2, y2, z2;
 
         try {
@@ -48,7 +49,6 @@ public class LobbyRegisterCommand implements CommandExecutor {
             return true;
         }
 
-        // args[7] = optional world name, args[8] = optional max players
         String world = (args.length >= 8) ? args[7] : player.getWorld().getName();
 
         if (plugin.getServer().getWorld(world) == null) {
@@ -70,12 +70,12 @@ public class LobbyRegisterCommand implements CommandExecutor {
             }
         }
 
-        if (lobbyManager.registerLobby(lobbyName, world, x1, y1, z1, x2, y2, z2, maxPlayers)) {
-            sender.sendMessage("Lobby '" + lobbyName + "' registered in world '" + world + "'.");
-            sender.sendMessage("Region: (" + x1 + ", " + y1 + ", " + z1 + ") to (" + x2 + ", " + y2 + ", " + z2 + ")" +
-                    " | Max players: " + maxPlayers);
+        if (arenaManager.registerArena(arenaName, world, x1, y1, z1, x2, y2, z2, maxPlayers)) {
+            sender.sendMessage("Arena '" + arenaName + "' registered in world '" + world + "'.");
+            sender.sendMessage("Region: (" + x1 + ", " + y1 + ", " + z1 + ") to (" + x2 + ", " + y2 + ", " + z2 + ")"
+                    + " | Max players: " + maxPlayers);
         } else {
-            sender.sendMessage("Failed to save lobby '" + lobbyName + "'. Check the console for errors.");
+            sender.sendMessage("Failed to save arena '" + arenaName + "'. Check the console for errors.");
         }
 
         return true;
