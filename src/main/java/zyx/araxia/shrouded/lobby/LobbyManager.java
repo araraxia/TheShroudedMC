@@ -1,15 +1,23 @@
 package zyx.araxia.shrouded.lobby;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-import zyx.araxia.shrouded.game.PlayerClass;
-
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import zyx.araxia.shrouded.game.PlayerClass;
 
 public class LobbyManager {
 
@@ -27,39 +35,42 @@ public class LobbyManager {
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
-
     public boolean lobbyExists(String name) {
         return lobbies.containsKey(name);
     }
 
     /**
-     * Creates a new lobby and writes it to <lobby_name>.json in the plugin folder.
-     * Overwrites any existing lobby with the same name.
+     * Creates a new lobby and writes it to <lobby_name>.json in the plugin
+     * folder. Overwrites any existing lobby with the same name.
      */
     public boolean registerLobby(String name, String world,
-                                  int x1, int y1, int z1,
-                                  int x2, int y2, int z2,
-                                  int maxPlayers) {
+            int x1, int y1, int z1,
+            int x2, int y2, int z2,
+            int maxPlayers) {
         Lobby lobby = new Lobby(name, world, x1, y1, z1, x2, y2, z2, maxPlayers);
         lobbies.put(name, lobby);
-        sessions.put(name, new LobbySession(lobby));
+        sessions.put(name, new LobbySession(lobby, plugin));
         return saveLobby(lobby);
     }
 
     /**
      * Appends a sign location to an existing lobby and re-saves the JSON file.
      *
-     * @return false if the lobby does not exist or the file could not be written.
+     * @return false if the lobby does not exist or the file could not be
+     * written.
      */
     public boolean registerSign(String lobbyName, String world, int x, int y, int z) {
         Lobby lobby = lobbies.get(lobbyName);
-        if (lobby == null) return false;
+        if (lobby == null) {
+            return false;
+        }
         lobby.addSign(new Lobby.SignLocation(world, x, y, z));
         return saveLobby(lobby);
     }
 
     /**
-     * Finds the active session whose lobby has a sign at the given world/coords.
+     * Finds the active session whose lobby has a sign at the given
+     * world/coords.
      *
      * @return the matching session, or null if no registered sign matches.
      */
@@ -78,7 +89,58 @@ public class LobbyManager {
     }
 
     /**
-     * Stores the chosen class for a player in whichever session they currently belong to.
+     * Adds an arena to a lobby's valid_arenas list and re-saves the lobby JSON.
+     *
+     * @return false if the lobby does not exist, the arena name is already
+     * registered, or the file could not be written.
+     */
+    public boolean registerArenaToLobby(String lobbyName, String arenaName) {
+        Lobby lobby = lobbies.get(lobbyName);
+        if (lobby == null) {
+            return false;
+        }
+        if (!lobby.addValidArena(arenaName)) {
+            return false;
+        }
+        return saveLobby(lobby);
+    }
+
+    /**
+     * Sets the countdown timer for a lobby and re-saves the JSON file.
+     *
+     * @return false if the lobby does not exist or the file could not be
+     * written.
+     */
+    public boolean setCountdown(String lobbyName, int seconds) {
+        Lobby lobby = lobbies.get(lobbyName);
+        if (lobby == null) {
+            return false;
+        }
+        lobby.setStartCountdownSeconds(seconds);
+        return saveLobby(lobby);
+    }
+
+    /**
+     * Removes an arena from a lobby's valid_arenas list and re-saves the lobby
+     * JSON.
+     *
+     * @return false if the lobby does not exist, the arena was not listed, or
+     * the file could not be written.
+     */
+    public boolean removeArenaFromLobby(String lobbyName, String arenaName) {
+        Lobby lobby = lobbies.get(lobbyName);
+        if (lobby == null) {
+            return false;
+        }
+        if (!lobby.removeValidArena(arenaName)) {
+            return false;
+        }
+        return saveLobby(lobby);
+    }
+
+    /**
+     * Stores the chosen class for a player in whichever session they currently
+     * belong to.
      */
     public void setPlayerClass(Player player, PlayerClass playerClass) {
         for (LobbySession session : sessions.values()) {
@@ -92,8 +154,9 @@ public class LobbyManager {
     // -------------------------------------------------------------------------
     // File I/O
     // -------------------------------------------------------------------------
-
-    /** Reads every .json file in the plugin data folder on startup. */
+    /**
+     * Reads every .json file in the plugin data folder on startup.
+     */
     private void loadAll() {
         File folder = plugin.getDataFolder();
         if (!folder.exists()) {
@@ -102,32 +165,48 @@ public class LobbyManager {
         }
 
         File[] files = folder.listFiles((dir, name) -> name.endsWith(".json"));
-        if (files == null) return;
+        if (files == null) {
+            return;
+        }
 
         for (File file : files) {
             try (Reader reader = new FileReader(file, StandardCharsets.UTF_8)) {
                 Lobby lobby = gson.fromJson(reader, Lobby.class);
                 if (lobby != null) {
                     lobbies.put(lobby.getName(), lobby);
-                    sessions.put(lobby.getName(), new LobbySession(lobby));
-                    plugin.getLogger().info("Loaded lobby: " + lobby.getName());
+                    sessions.put(lobby.getName(), new LobbySession(lobby, plugin));
+                    plugin.getLogger().log(
+                        Level.INFO,
+                        "[TheShrouded] Loaded lobby ''{0}'' (countdown: {1}s).",
+                        new Object[]{lobby.getName(), lobby.getStartCountdownSeconds()}
+                    );
                 }
             } catch (IOException e) {
-                plugin.getLogger().warning("Failed to load lobby file: " + file.getName() + " - " + e.getMessage());
+                plugin.getLogger().log(
+                    Level.WARNING,
+                    "[TheShrouded] Failed to load lobby file: {0} - {1}",
+                    new Object[]{file.getName(), e.getMessage()}
+                );
             }
         }
     }
 
     private boolean saveLobby(Lobby lobby) {
         File folder = plugin.getDataFolder();
-        if (!folder.exists()) folder.mkdirs();
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
 
         File file = new File(folder, lobby.getName() + ".json");
         try (Writer writer = new FileWriter(file, StandardCharsets.UTF_8)) {
             gson.toJson(lobby, writer);
             return true;
         } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save lobby '" + lobby.getName() + "': " + e.getMessage());
+            plugin.getLogger().log(
+                Level.WARNING,
+                "[TheShrouded] Failed to save lobby ''{0}'': {1}",
+                new Object[]{lobby.getName(), e.getMessage()}
+            );
             return false;
         }
     }

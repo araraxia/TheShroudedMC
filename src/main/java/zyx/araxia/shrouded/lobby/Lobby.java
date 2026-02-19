@@ -1,10 +1,10 @@
 package zyx.araxia.shrouded.lobby;
 
-import org.bukkit.Location;
-import org.bukkit.World;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.bukkit.Location;
+import org.bukkit.World;
 
 public class Lobby {
 
@@ -12,8 +12,10 @@ public class Lobby {
     private final String world;
     private final int x1, y1, z1;
     private final int x2, y2, z2;
-    private int maxPlayers;
+    private final int maxPlayers;
+    private int startCountdownSeconds;
     private final List<SignLocation> signs = new ArrayList<>();
+    private final List<String> validArenas = new ArrayList<>();
 
     public Lobby(String name, String world, int x1, int y1, int z1, int x2, int y2, int z2, int maxPlayers) {
         this.name = name;
@@ -21,6 +23,7 @@ public class Lobby {
         this.x1 = x1; this.y1 = y1; this.z1 = z1;
         this.x2 = x2; this.y2 = y2; this.z2 = z2;
         this.maxPlayers = maxPlayers;
+        this.startCountdownSeconds = 30;
     }
 
     public String getName()     { return name; }
@@ -32,6 +35,19 @@ public class Lobby {
     public int getY2()          { return y2; }
     public int getZ2()          { return z2; }
     public int getMaxPlayers()  { return maxPlayers; }
+
+    /**
+     * How long to wait (in seconds) after the second player joins before
+     * starting the game. Falls back to 30 if the value is missing from JSON.
+     */
+    public int getStartCountdownSeconds() {
+        return startCountdownSeconds > 0 ? startCountdownSeconds : 30;
+    }
+
+    public void setStartCountdownSeconds(int seconds) {
+        this.startCountdownSeconds = seconds;
+    }
+
     public List<SignLocation> getSigns() { return signs; }
 
     /**
@@ -46,6 +62,29 @@ public class Lobby {
 
     public void addSign(SignLocation sign) {
         signs.add(sign);
+    }
+
+    /** Returns the mutable list of arena names that are valid for this lobby. */
+    public List<String> getValidArenas() { return validArenas; }
+
+    /**
+     * Registers an arena name as valid for this lobby.
+     *
+     * @return false if the arena is already in the list.
+     */
+    public boolean addValidArena(String arenaName) {
+        if (validArenas.contains(arenaName)) return false;
+        validArenas.add(arenaName);
+        return true;
+    }
+
+    /**
+     * Removes an arena name from this lobby's valid arenas.
+     *
+     * @return false if the arena was not in the list.
+     */
+    public boolean removeValidArena(String arenaName) {
+        return validArenas.remove(arenaName);
     }
 
     // -------------------------------------------------------------------------
