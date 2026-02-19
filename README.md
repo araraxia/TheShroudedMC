@@ -44,8 +44,9 @@ The mercenaries are the hunting team. Each player selects a class before the rou
 2. Register a **lobby** region for players to wait in before a match starts.
 3. Register one or more **arena** regions where matches will be played.
 4. Link each arena to a lobby.
-5. Register a **sign** in the lobby so players can join.
-6. *(Optional)* Adjust the lobby countdown timer.
+5. Register a **join sign** in the lobby so players can join.
+6. Register a **leave sign** in the lobby so players can leave.
+7. *(Optional)* Adjust the lobby countdown timer.
 
 ---
 
@@ -97,12 +98,28 @@ Registers a rectangular region as a match arena.
 
 ### `/shrouded.register.sign`
 
-Registers the sign you are looking at as a join point for a lobby. Players can click this sign to enter the lobby queue.
+Registers the sign you are looking at as a **join** point for a lobby. Players can right-click this sign to enter the lobby queue.
 
 **Usage:**
 
 ```text
 /shrouded.register.sign <lobby_name>
+```
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `lobby_name` | Yes | The name of the lobby to link the sign to. |
+
+---
+
+### `/shrouded.register.leavesign`
+
+Registers the sign you are looking at as a **leave** point for a lobby. Players can right-click this sign to exit the lobby queue.
+
+**Usage:**
+
+```text
+/shrouded.register.leavesign <lobby_name>
 ```
 
 | Argument | Required | Description |
@@ -143,6 +160,34 @@ Sets how long (in seconds) the lobby countdown timer runs before teleporting pla
 |--------------|----------|---------------------------------------|
 | `lobby_name` | Yes      | The name of the target lobby.         |
 | `seconds`    | Yes      | Duration of the countdown in seconds. |
+
+---
+
+### `/shrouded.lobby.leave`
+
+Removes the executing player from the lobby they are currently in. No arguments needed. Players can also leave by right-clicking a registered leave sign, or automatically when they disconnect.
+
+**Usage:**
+
+```text
+/shrouded.lobby.leave
+```
+
+---
+
+### `/shrouded.lobby.forcestart`
+
+Cancels any pending countdown and immediately starts the session for a lobby, skipping the remainder of the wait.
+
+**Usage:**
+
+```text
+/shrouded.lobby.forcestart <lobby_name>
+```
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `lobby_name` | Yes | The name of the target lobby. |
 
 ---
 
