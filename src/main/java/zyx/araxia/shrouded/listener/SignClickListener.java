@@ -1,6 +1,7 @@
 package zyx.araxia.shrouded.listener;
 
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
@@ -8,10 +9,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import zyx.araxia.shrouded.lobby.Lobby;
 import zyx.araxia.shrouded.lobby.LobbyManager;
+import zyx.araxia.shrouded.lobby.LobbyManager.JoinSessionResult;
 import zyx.araxia.shrouded.lobby.LobbySession;
-import zyx.araxia.shrouded.menu.ClassSelectMenu;
 
 public class SignClickListener implements Listener {
 
@@ -23,40 +23,58 @@ public class SignClickListener implements Listener {
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
+            return;
 
         Block block = event.getClickedBlock();
-        if (block == null || !(block.getState() instanceof Sign)) return;
-
-        LobbySession session = lobbyManager.getSessionBySign(
-                block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
-
-        if (session == null) return; // Not a registered lobby sign
-
-        event.setCancelled(true); // Prevent sign editing
+        if (block == null || !(block.getState() instanceof Sign))
+            return;
 
         Player player = event.getPlayer();
-        Lobby lobby = session.getLobby();
+        String world = block.getWorld().getName();
+        int x = block.getX(), y = block.getY(), z = block.getZ();
 
-        if (session.contains(player.getUniqueId())) {
-            player.sendMessage(ChatColor.YELLOW + "You are already in lobby '" + lobby.getName() + "'.");
+        // Check leave signs first
+        LobbySession leaveSession = lobbyManager.getSessionByLeaveSign(world, x, y, z);
+        if (leaveSession != null) {
+            event.setCancelled(true);
+            if (!leaveSession.contains(player.getUniqueId())) {
+                player.sendMessage(Component.text(
+                        "You are not in lobby '" + leaveSession.getLobby().getName() + "'.",
+                        NamedTextColor.YELLOW));
+                return;
+            }
+            lobbyManager.removePlayerFromSession(player);
+            player.sendMessage(Component.text(
+                    "You left lobby '" + leaveSession.getLobby().getName() + "'.",
+                    NamedTextColor.YELLOW));
             return;
         }
 
-        if (session.isFull()) {
-            player.sendMessage(ChatColor.RED + "Lobby '" + lobby.getName() + "' is full ("
-                    + lobby.getMaxPlayers() + "/" + lobby.getMaxPlayers() + ").");
-            return;
+        // Check join signs
+        LobbySession session = lobbyManager.getSessionBySign(world, x, y, z);
+        if (session == null)
+            return; // Not a registered lobby sign
+
+        event.setCancelled(true);
+
+        JoinSessionResult result = lobbyManager.addPlayerToSession(player, session);
+        switch (result) {
+            case SUCCESS -> player.sendMessage(Component.text(
+                    "You joined lobby '" + session.getLobby().getName() + "' ("
+                            + session.getPlayerCount() + "/" + session.getLobby().getMaxPlayers() + ").",
+                    NamedTextColor.GREEN));
+            case ALREADY_IN_LOBBY -> player.sendMessage(Component.text(
+                    "You are already in lobby '" + session.getLobby().getName() + "'.",
+                    NamedTextColor.YELLOW));
+            case LOBBY_FULL -> player.sendMessage(Component.text(
+                    "Lobby '" + session.getLobby().getName() + "' is full ("
+                            + session.getLobby().getMaxPlayers() + "/" + session.getLobby().getMaxPlayers() + ").",
+                    NamedTextColor.RED));
+            case WORLD_NOT_FOUND -> player.sendMessage(Component.text(
+                    "Could not join lobby '" + session.getLobby().getName()
+                            + "' — its world is not loaded.",
+                    NamedTextColor.RED));
         }
-
-        // Teleport to lobby spawn (center of the region)
-        player.teleport(lobby.getSpawnLocation(block.getWorld()));
-
-        session.add(player);
-        player.sendMessage(ChatColor.GREEN + "You joined lobby '" + lobby.getName() + "' ("
-                + session.getPlayerCount() + "/" + lobby.getMaxPlayers() + ").");
-
-        // Open class selection menu
-        ClassSelectMenu.open(player);
     }
 }

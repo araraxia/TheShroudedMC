@@ -31,6 +31,19 @@ commands:
     usage: /shrouded.lobby.countdown <lobby_name> <seconds>
     permission: shrouded.admin
     permission-message: You don't have permission to manage lobby settings.
+  "shrouded.lobby.forcestart":
+    description: Cancels any pending countdown and immediately starts the lobby session
+    usage: /shrouded.lobby.forcestart <lobby_name>
+    permission: shrouded.admin
+    permission-message: You don't have permission to force-start lobbies.
+  "shrouded.lobby.leave":
+    description: Removes the player from the lobby they are currently in
+    usage: /shrouded.lobby.leave
+  "shrouded.register.leavesign":
+    description: Registers the sign you are looking at as a leave point for a lobby
+    usage: /shrouded.register.leavesign <lobby_name>
+    permission: shrouded.admin
+    permission-message: You don't have permission to register leave signs.
 
 permissions:
   shrouded.admin:

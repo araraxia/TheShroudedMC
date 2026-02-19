@@ -28,11 +28,12 @@ public class LobbySession {
 
     private final Lobby lobby;
     private final JavaPlugin plugin;
+    private final ArenaManager arenaManager;
     private final Random random = new Random();
 
     @SuppressWarnings("NonConstantLogger")
     private final Logger logger;
-    
+
     // null value = player joined but hasn't picked a class yet
     private final Map<UUID, PlayerClass> players = new HashMap<>();
     private final Map<UUID, Instant> joinTimes = new HashMap<>();
@@ -40,10 +41,14 @@ public class LobbySession {
 
     private BukkitTask countdownTask = null;
 
-    public LobbySession(Lobby lobby, JavaPlugin plugin) {
+    /** Arenas chosen for the upcoming vote (or the single auto-selected arena). */
+    private List<Arena> candidateArenas = new ArrayList<>();
+
+    public LobbySession(Lobby lobby, JavaPlugin plugin, ArenaManager arenaManager) {
         this.lobby = lobby;
         this.lobbyName = lobby.getName();
         this.plugin = plugin;
+        this.arenaManager = arenaManager;
         this.logger = plugin.getLogger();
     }
 
@@ -194,7 +199,114 @@ public class LobbySession {
         }
 
         countdownTask = null;
+        startSession();
+    }
+
+    /**
+     * Cancels any pending countdown and immediately starts the session.
+     * Has no effect if the session has fewer than 2 players.
+     */
+    public void forceStart() {
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
+        startSession();
+    }
+
+    /**
+     * Starts the game session: assigns classes and performs any other
+     * setup needed to begin the round.
+     * Add future game-start calls here (e.g. teleport players, spawn items).
+     */
+    public void startSession() {
         assignClasses();
+        selectArenas();
+        // TODO: teleport players to arena
+        // TODO: apply class kits
+        // TODO: begin round timer
+    }
+
+    /**
+     * Chooses up to 3 available arenas from the lobby's configured arena pool,
+     * claims each one, then either starts a vote (multiple candidates) or
+     * proceeds directly to arena transition (single candidate).
+     *
+     * <p>If no arenas are available the session is aborted with a log warning.
+     */
+    private void selectArenas() {
+        List<String> validNames = lobby.getValidArenas();
+        if (validNames.isEmpty()) {
+            logger.log(Level.WARNING,
+                    "Lobby '{0}' has no valid arenas configured — cannot start match.",
+                    lobbyName);
+            return;
+        }
+
+        // Collect all available (not in-use) arenas
+        List<Arena> available = new ArrayList<>();
+        for (String name : validNames) {
+            Arena arena = arenaManager.getArena(name);
+            if (arena != null && !arena.isInUse()) {
+                available.add(arena);
+            }
+        }
+
+        if (available.isEmpty()) {
+            logger.log(Level.WARNING,
+                    "Lobby '{0}' has no free arenas right now — cannot start match.",
+                    lobbyName);
+            return;
+        }
+
+        // Shuffle and take up to 3 candidates
+        Collections.shuffle(available, random);
+        int count = Math.min(3, available.size());
+        candidateArenas = new ArrayList<>(available.subList(0, count));
+
+        // Claim every candidate so other lobbies can't grab them
+        for (Arena arena : candidateArenas) {
+            arena.claim(lobbyName);
+        }
+
+        logger.log(Level.FINE,
+                "Lobby '{0}' selected {1} arena candidate(s): {2}.",
+                new Object[]{lobbyName, candidateArenas.size(),
+                        candidateArenas.stream().map(Arena::getName).toList()});
+
+        if (candidateArenas.size() == 1) {
+            // Only one option — skip the vote and move straight to arena transition
+            beginArenaTransition(candidateArenas.get(0));
+        } else {
+            // Multiple candidates — let players vote
+            beginArenaVote(candidateArenas);
+        }
+    }
+
+    /**
+     * Called when exactly one arena was available (or the vote has concluded).
+     * Starts moving players into the arena to begin the round.
+     *
+     * @param arena the arena that will be used for this match.
+     */
+    private void beginArenaTransition(Arena arena) {
+        logger.log(Level.FINE,
+                "Lobby '{0}' beginning transition to arena '{1}'.",
+                new Object[]{lobbyName, arena.getName()});
+        // TODO: teleport players to arena.getSpawnLocation()
+    }
+
+    /**
+     * Called when two or three arenas are available and players should vote.
+     *
+     * @param candidates the arenas presented for the vote.
+     */
+    private void beginArenaVote(List<Arena> candidates) {
+        logger.log(Level.FINE,
+                "Lobby '{0}' starting arena vote with candidates: {1}.",
+                new Object[]{lobbyName,
+                        candidates.stream().map(Arena::getName).toList()});
+        // TODO: implement voting logic
     }
 
     /**

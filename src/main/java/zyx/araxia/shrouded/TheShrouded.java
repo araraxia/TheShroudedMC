@@ -5,10 +5,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import zyx.araxia.shrouded.commands.ArenaLobbyCommand;
 import zyx.araxia.shrouded.commands.ArenaRegisterCommand;
+import zyx.araxia.shrouded.commands.LeaveSignRegisterCommand;
 import zyx.araxia.shrouded.commands.LobbyCountdownCommand;
+import zyx.araxia.shrouded.commands.LobbyForceStartCommand;
+import zyx.araxia.shrouded.commands.LobbyLeaveCommand;
 import zyx.araxia.shrouded.commands.LobbyRegisterCommand;
 import zyx.araxia.shrouded.commands.SignRegisterCommand;
 import zyx.araxia.shrouded.listener.ClassSelectMenuListener;
+import zyx.araxia.shrouded.listener.PlayerQuitListener;
 import zyx.araxia.shrouded.listener.SignClickListener;
 import zyx.araxia.shrouded.lobby.ArenaManager;
 import zyx.araxia.shrouded.lobby.LobbyManager;
@@ -22,6 +26,7 @@ public class TheShrouded extends JavaPlugin {
     public void onEnable() {
         lobbyManager = new LobbyManager(this);
         arenaManager = new ArenaManager(this);
+        lobbyManager.setArenaManager(arenaManager);
 
         // Register commands
         final String registerLobbyName = "shrouded.register.lobby";
@@ -29,11 +34,17 @@ public class TheShrouded extends JavaPlugin {
         final String registerArenaName = "shrouded.register.arena";
         final String lobbyArenaName = "shrouded.lobby.arena";
         final String lobbyCountdownName = "shrouded.lobby.countdown";
+        final String lobbyForceStartName = "shrouded.lobby.forcestart";
+        final String lobbyLeaveName = "shrouded.lobby.leave";
+        final String registerLeaveSignName = "shrouded.register.leavesign";
         PluginCommand lobbyRegisterCmd = getCommand(registerLobbyName);
         PluginCommand signRegisterCmd = getCommand(registerSignName);
         PluginCommand arenaRegisterCmd = getCommand(registerArenaName);
         PluginCommand arenaLobbyCmd = getCommand(lobbyArenaName);
         PluginCommand lobbyCountdownCmd = getCommand(lobbyCountdownName);
+        PluginCommand lobbyForceStartCmd = getCommand(lobbyForceStartName);
+        PluginCommand lobbyLeaveCmd = getCommand(lobbyLeaveName);
+        PluginCommand registerLeaveSignCmd = getCommand(registerLeaveSignName);
         if (lobbyRegisterCmd != null)
             lobbyRegisterCmd.setExecutor(
                 new LobbyRegisterCommand(this, lobbyManager)
@@ -54,10 +65,23 @@ public class TheShrouded extends JavaPlugin {
             lobbyCountdownCmd.setExecutor(
                 new LobbyCountdownCommand(lobbyManager)
             );
+        if (lobbyForceStartCmd != null)
+            lobbyForceStartCmd.setExecutor(
+                new LobbyForceStartCommand(lobbyManager)
+            );
+        if (lobbyLeaveCmd != null)
+            lobbyLeaveCmd.setExecutor(
+                new LobbyLeaveCommand(lobbyManager)
+            );
+        if (registerLeaveSignCmd != null)
+            registerLeaveSignCmd.setExecutor(
+                new LeaveSignRegisterCommand(lobbyManager)
+            );
 
         // Register event listeners
         getServer().getPluginManager().registerEvents(new SignClickListener(lobbyManager), this);
         getServer().getPluginManager().registerEvents(new ClassSelectMenuListener(lobbyManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerQuitListener(lobbyManager), this);
 
         getLogger().info("TheShrouded has been enabled!");
     }
@@ -65,6 +89,8 @@ public class TheShrouded extends JavaPlugin {
     @Override
     public void onDisable() {
         getLogger().info("TheShrouded has been disabled!");
+        // TODO: Clean up any active sessions, save data, etc.
+        // TODO: Scan player inventories and remove any items with Shrouded in-game tags to prevent smuggling out of the plugin's control.
     }
 
     public LobbyManager getLobbyManager() {

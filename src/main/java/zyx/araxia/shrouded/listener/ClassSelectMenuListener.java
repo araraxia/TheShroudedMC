@@ -1,6 +1,7 @@
 package zyx.araxia.shrouded.listener;
 
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -32,9 +33,10 @@ public class ClassSelectMenuListener implements Listener {
             if (cls.getIcon() == event.getCurrentItem().getType()) {
                 lobbyManager.setPlayerClass(player, cls);
                 player.closeInventory();
-                player.sendMessage(ChatColor.GREEN + "You selected the "
-                        + ChatColor.GOLD + cls.getDisplayName()
-                        + ChatColor.GREEN + " class!");
+                player.sendMessage(
+                        Component.text("You selected the ", NamedTextColor.GREEN)
+                                .append(Component.text(cls.getDisplayName(), NamedTextColor.GOLD))
+                                .append(Component.text(" class!", NamedTextColor.GREEN)));
                 return;
             }
         }

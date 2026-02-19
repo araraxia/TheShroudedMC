@@ -15,6 +15,7 @@ public class Lobby {
     private final int maxPlayers;
     private int startCountdownSeconds;
     private final List<SignLocation> signs = new ArrayList<>();
+    private final List<SignLocation> leaveSigns = new ArrayList<>();
     private final List<String> validArenas = new ArrayList<>();
 
     public Lobby(String name, String world, int x1, int y1, int z1, int x2, int y2, int z2, int maxPlayers) {
@@ -50,6 +51,8 @@ public class Lobby {
 
     public List<SignLocation> getSigns() { return signs; }
 
+    public List<SignLocation> getLeaveSigns() { return leaveSigns; }
+
     /**
      * Returns the center of the lobby region at floor level, used as the teleport destination.
      */
@@ -62,6 +65,10 @@ public class Lobby {
 
     public void addSign(SignLocation sign) {
         signs.add(sign);
+    }
+
+    public void addLeaveSign(SignLocation sign) {
+        leaveSigns.add(sign);
     }
 
     /** Returns the mutable list of arena names that are valid for this lobby. */
