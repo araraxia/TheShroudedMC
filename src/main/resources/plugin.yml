@@ -44,6 +44,11 @@ commands:
     usage: /shrouded.register.leavesign <lobby_name>
     permission: shrouded.admin
     permission-message: You don't have permission to register leave signs.
+  "shrouded.lobby.spawn":
+    description: Sets the spawn point for a lobby (defaults to your current location)
+    usage: /shrouded.lobby.spawn <lobby_name> [x y z [yaw pitch]]
+    permission: shrouded.admin
+    permission-message: You don't have permission to manage lobby settings.
 
 permissions:
   shrouded.admin:

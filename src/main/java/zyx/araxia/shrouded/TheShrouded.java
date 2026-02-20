@@ -10,6 +10,7 @@ import zyx.araxia.shrouded.commands.LobbyCountdownCommand;
 import zyx.araxia.shrouded.commands.LobbyForceStartCommand;
 import zyx.araxia.shrouded.commands.LobbyLeaveCommand;
 import zyx.araxia.shrouded.commands.LobbyRegisterCommand;
+import zyx.araxia.shrouded.commands.LobbySpawnCommand;
 import zyx.araxia.shrouded.commands.SignRegisterCommand;
 import zyx.araxia.shrouded.listener.ClassSelectMenuListener;
 import zyx.araxia.shrouded.listener.PlayerQuitListener;
@@ -37,6 +38,7 @@ public class TheShrouded extends JavaPlugin {
         final String lobbyForceStartName = "shrouded.lobby.forcestart";
         final String lobbyLeaveName = "shrouded.lobby.leave";
         final String registerLeaveSignName = "shrouded.register.leavesign";
+        final String lobbySpawnName = "shrouded.lobby.spawn";
         PluginCommand lobbyRegisterCmd = getCommand(registerLobbyName);
         PluginCommand signRegisterCmd = getCommand(registerSignName);
         PluginCommand arenaRegisterCmd = getCommand(registerArenaName);
@@ -45,6 +47,7 @@ public class TheShrouded extends JavaPlugin {
         PluginCommand lobbyForceStartCmd = getCommand(lobbyForceStartName);
         PluginCommand lobbyLeaveCmd = getCommand(lobbyLeaveName);
         PluginCommand registerLeaveSignCmd = getCommand(registerLeaveSignName);
+        PluginCommand lobbySpawnCmd = getCommand(lobbySpawnName);
         if (lobbyRegisterCmd != null)
             lobbyRegisterCmd.setExecutor(
                 new LobbyRegisterCommand(this, lobbyManager)
@@ -76,6 +79,10 @@ public class TheShrouded extends JavaPlugin {
         if (registerLeaveSignCmd != null)
             registerLeaveSignCmd.setExecutor(
                 new LeaveSignRegisterCommand(lobbyManager)
+            );
+        if (lobbySpawnCmd != null)
+            lobbySpawnCmd.setExecutor(
+                new LobbySpawnCommand(lobbyManager)
             );
 
         // Register event listeners
