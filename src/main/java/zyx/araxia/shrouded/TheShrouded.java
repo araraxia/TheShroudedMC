@@ -90,12 +90,17 @@ public class TheShrouded extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ClassSelectMenuListener(lobbyManager), this);
         getServer().getPluginManager().registerEvents(new PlayerQuitListener(lobbyManager), this);
 
+        // TODO: Iterate through player snapshots and restore any players still in lobbies to their pre-lobby state to prevent them from being stranded in limbo until they rejoin the server.
+        // TODO: Restore all Arenas to their pre-game state in case the plugin was disabled mid-session, including unclaiming any claimed arenas and resetting any arena blocks that may have been modified.
+
         getLogger().info("TheShrouded has been enabled!");
     }
 
     @Override
     public void onDisable() {
         getLogger().info("TheShrouded has been disabled!");
+        // TODO: Iterate through player snapshots and restore any players still in lobbies to their pre-lobby state to prevent them from being stranded in limbo until they rejoin the server.
+        // TODO: Restore all Arenas to their pre-game state in case the plugin was disabled mid-session, including unclaiming any claimed arenas and resetting any arena blocks that may have been modified.
         // TODO: Clean up any active sessions, save data, etc.
         // TODO: Scan player inventories and remove any items with Shrouded in-game tags to prevent smuggling out of the plugin's control.
     }
