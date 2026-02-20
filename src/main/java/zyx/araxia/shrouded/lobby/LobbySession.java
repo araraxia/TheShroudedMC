@@ -199,7 +199,7 @@ public class LobbySession {
         }
 
         countdownTask = null;
-        startSession();
+        startMatch();
     }
 
     /**
@@ -211,7 +211,7 @@ public class LobbySession {
             countdownTask.cancel();
             countdownTask = null;
         }
-        startSession();
+        startMatch();
     }
 
     /**
@@ -219,7 +219,7 @@ public class LobbySession {
      * setup needed to begin the round.
      * Add future game-start calls here (e.g. teleport players, spawn items).
      */
-    public void startSession() {
+    public void startMatch() {
         assignClasses();
         selectArenas();
         // TODO: teleport players to arena
@@ -291,7 +291,7 @@ public class LobbySession {
      */
     private void beginArenaTransition(Arena arena) {
         logger.log(Level.FINE,
-                "Lobby '{0}' beginning transition to arena '{1}'.",
+                "[TheShrouded] Lobby '{0}' beginning transition to arena '{1}'.",
                 new Object[]{lobbyName, arena.getName()});
         // TODO: teleport players to arena.getSpawnLocation()
     }
@@ -303,7 +303,7 @@ public class LobbySession {
      */
     private void beginArenaVote(List<Arena> candidates) {
         logger.log(Level.FINE,
-                "Lobby '{0}' starting arena vote with candidates: {1}.",
+                "[TheShrouded] Lobby '{0}' starting arena vote with candidates: {1}.",
                 new Object[]{lobbyName,
                         candidates.stream().map(Arena::getName).toList()});
         // TODO: implement voting logic
@@ -331,6 +331,6 @@ public class LobbySession {
             }
         }
 
-        plugin.getLogger().log(Level.FINE, "Classes assigned for lobby '{0}'.", lobby.getName());
+        plugin.getLogger().log(Level.FINE, "[TheShrouded] Classes assigned for lobby '{0}'.", lobby.getName());
     }
 }

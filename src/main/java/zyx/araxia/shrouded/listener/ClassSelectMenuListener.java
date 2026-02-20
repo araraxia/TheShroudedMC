@@ -3,6 +3,7 @@ package zyx.araxia.shrouded.listener;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -25,12 +26,15 @@ public class ClassSelectMenuListener implements Listener {
 
         event.setCancelled(true); // Prevent taking items from the menu
 
-        if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (event.getCurrentItem() == null) return;
+        if (!(event.getWhoClicked() instanceof Player player))
+            return;
 
+        ItemStack currentItem = event.getCurrentItem();
+        if (currentItem == null) return;
+        
         // Match the clicked item material to a PlayerClass
         for (PlayerClass cls : PlayerClass.values()) {
-            if (cls.getIcon() == event.getCurrentItem().getType()) {
+            if (cls.getIcon() == currentItem.getType()) {
                 lobbyManager.setPlayerClass(player, cls);
                 player.closeInventory();
                 player.sendMessage(
