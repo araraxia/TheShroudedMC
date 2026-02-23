@@ -19,6 +19,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class ArenaManager {
+    // TODO: Add command to save arena block data to a file that will be used to reload the arena at the start of each match, allowing for block build/break mid-match without permanently altering the arena. This will also allow for easy sharing of arenas between servers and players.
 
     private static final String ARENAS_FOLDER = "arenas";
 
