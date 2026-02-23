@@ -1,0 +1,9 @@
+{
+    "sources": [
+        {
+            "type": "single",
+            "resource": "shrouded:mob_effect/health_potion_cooldown",
+            "sprite": "shrouded:mob_effect/health_potion_cooldown"
+        }
+    ]
+}
