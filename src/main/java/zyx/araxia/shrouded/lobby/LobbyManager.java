@@ -23,6 +23,7 @@ import com.google.gson.GsonBuilder;
 
 import zyx.araxia.shrouded.TheShrouded;
 import zyx.araxia.shrouded.game.PlayerClass;
+import zyx.araxia.shrouded.item.ShroudedItems;
 import zyx.araxia.shrouded.menu.ClassSelectMenu;
 
 public class LobbyManager {
@@ -196,50 +197,73 @@ public class LobbyManager {
      * Returns {@link JoinSessionResult#PLAYER_FILE_EXISTS} (with a warning sent
      * to the player) if a data file for this UUID already exists, to prevent
      * silent overwrites of a previous saved state.
-     *
-     * <p>
-     * TODO: Clear the player's inventory and give them lobby items (class
-     * selector, leave item, etc.) with appropriate tags.
      */
     public JoinSessionResult addPlayerToSession(Player player, LobbySession session) {
         LOGGER.log(Level.FINE, "[TheShrouded] Adding player {0} ({1}) to session {2}",
                 new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName() });
-        if (session.contains(player.getUniqueId())) {
-            LOGGER.log(Level.FINE, "[TheShrouded] Player {0} ({1}) is already in session {2}",
-                    new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName() });
-            return JoinSessionResult.ALREADY_IN_LOBBY;
-        }
-        if (session.isFull()) {
-            LOGGER.log(Level.FINE, "[TheShrouded] Session {0} is full; cannot add player {1} ({2})",
-                    new Object[] { session.getLobby().getName(), player.getName(), player.getUniqueId() });
-            return JoinSessionResult.LOBBY_FULL;
+
+        // Check join validity
+        JoinSessionResult validity = joinSessionValidity(session, player);
+        if (validity != null) {
+            return validity;
         }
 
-        Lobby lobby = session.getLobby();
-        World world = Bukkit.getWorld(lobby.getWorld());
-        if (world == null) {
+        // Save player state before teleporting
+        JoinSessionResult snapshotResult = savePlayerSnapshot(player, session);
+        if (snapshotResult != null) {
+            return snapshotResult;
+        }
+
+        // Teleport player to lobby spawn and open class select menu
+        if (!movePlayerToLobby(player, session)) {
+            return JoinSessionResult.UNKNOWN_ERROR;
+        }
+
+        session.add(player);
+        // Give the player the class-selector item so they can re-open the menu
+        // at any time during the lobby phase. The item carries plugin NBT tags
+        // (shrouded:is_shrouded_item + shrouded:item_type) so it can be swept
+        // from inventories on session end without touching the player's saved gear.
+        player.getInventory().addItem(ShroudedItems.createClassSelector());
+        ClassSelectMenu.open(player);
+
+        LOGGER.log(Level.INFO, "[TheShrouded] Player {0} ({1}) joined lobby session {2}",
+                new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName() });
+
+        return JoinSessionResult.SUCCESS;
+    }
+
+    private boolean movePlayerToLobby(Player player, LobbySession session) {
+        try {
+            Lobby lobby = session.getLobby();
+            World world = Bukkit.getWorld(lobby.getWorld());
+            if (world == null) {
+                LOGGER.log(Level.WARNING,
+                        "[TheShrouded] Failed to move player {0} ({1}) to lobby ''{2}'': world ''{3}'' not found",
+                        new Object[] { player.getName(), player.getUniqueId(), lobby.getName(), lobby.getWorld() });
+                return false;
+            }
+            player.teleport(lobby.getSpawnLocation(world));
+            return true;
+        } catch (Exception e) {
             LOGGER.log(Level.WARNING,
-                    "[TheShrouded] Lobby ''{0}'' has world ''{1}'' which is not loaded on this server",
-                    new Object[] { lobby.getName(), lobby.getWorld() });
-            return JoinSessionResult.WORLD_NOT_FOUND;
+                    "[TheShrouded] Failed to move player {0} ({1}) to lobby session {2}: {3}",
+                    new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName(), e.getMessage() });
+            return false;
         }
+    }
 
-        // --- Save player state before teleporting ---
-        File playerDataDir = new File(plugin.getDataFolder(), "playerData");
-        if (!playerDataDir.exists()) {
-            playerDataDir.mkdirs();
-        }
-
-        UUID uuid = player.getUniqueId();
-        File playerFile = new File(playerDataDir, uuid + ".json");
-
-        if (playerFile.exists()) {
-            player.sendMessage("§c A saved state already exists for your account. "
-                    + "You cannot join a lobby until your previous session has been resolved.");
-            LOGGER.log(Level.WARNING,
-                    "[TheShrouded] Player {0} ({1}) attempted to join session {2} but their player file already exists: {3}",
-                    new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName(),
-                            playerFile.getAbsolutePath() });
+    /**
+     * Saves a snapshot of the player's current state to a JSON file. Returns null
+     * on success or an appropriate JoinSessionResult on failure.
+     *
+     * @param player the Player whose state is being saved
+     * @param session the LobbySession the player is joining
+     * @return null if the snapshot was saved successfully, or a JoinSessionResult indicating the error
+     */
+    private JoinSessionResult savePlayerSnapshot(Player player, LobbySession session) {
+        File playerFile = getPlayerFile(player);
+        if (checkExistingPlayerFile(playerFile, player, session)) {
             return JoinSessionResult.PLAYER_FILE_EXISTS;
         }
 
@@ -255,22 +279,100 @@ public class LobbyManager {
                     new Object[] { player.getName(), e.getMessage() });
             return JoinSessionResult.PLAYER_FILE_ERROR;
         }
+        return null;
+    }
 
-        LOGGER.log(
-                Level.FINE,
-                "[TheShrouded] Moving player {0} ({1}) to lobby spawn",
-                new Object[] { player.getName(), player.getUniqueId() });
-        player.teleport(lobby.getSpawnLocation(world));
-        session.add(player);
-        ClassSelectMenu.open(player);
-        LOGGER.log(Level.INFO, "[TheShrouded] Player {0} ({1}) joined lobby session {2}",
-                new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName() });
-        return JoinSessionResult.SUCCESS;
+    /**
+     * Checks whether a player can join a lobby session, 
+     * returning null if valid or an appropriate JoinSessionResult if not. 
+     * Does not check for the presence of an existing player file, 
+     * which should be handled separately to allow for custom handling of that case 
+     * (e.g. prompting the player to resolve the conflict rather than outright denying the join attempt).
+     * 
+     * @param session the LobbySession the player is attempting to join
+     * @param player the Player attempting to join the session
+     * 
+     * @return null if the player can join the session, or a JoinSessionResult indicating why they cannot join.
+     */
+    private JoinSessionResult joinSessionValidity(LobbySession session, Player player) {
+        if (session.contains(player.getUniqueId())) {
+            LOGGER.log(Level.FINE, "[TheShrouded] Player {0} ({1}) is already in session {2}",
+                    new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName() });
+            return JoinSessionResult.ALREADY_IN_LOBBY;
+        }
+        if (session.isFull()) {
+            LOGGER.log(Level.FINE, "[TheShrouded] Session {0} is full; cannot add player {1} ({2})",
+                    new Object[] { session.getLobby().getName(), player.getName(), player.getUniqueId() });
+            return JoinSessionResult.LOBBY_FULL;
+        }
+        
+        Lobby lobby = session.getLobby();
+        World world = Bukkit.getWorld(lobby.getWorld());
+        if (world == null) {
+            LOGGER.log(Level.WARNING,
+                    "[TheShrouded] Lobby ''{0}'' has world ''{1}'' which is not loaded on this server",
+                    new Object[] { lobby.getName(), lobby.getWorld() });
+            return JoinSessionResult.WORLD_NOT_FOUND;
+        }
+        return null;
+    }
+
+    /**
+     * Return the file for storing a player's snapshot
+     *
+     * @param player the Player object representing the player to get the file
+     *               for
+     * @return the File object representing the player's snapshot file
+     * @throws IOException if the playerData directory cannot be created
+     */
+    private File getPlayerFile(Player player) {
+        File playerDataDir = new File(plugin.getDataFolder(), "playerData");
+        if (!playerDataDir.exists()) {
+            playerDataDir.mkdirs();
+        }
+
+        UUID uuid = player.getUniqueId();
+        return new File(playerDataDir, uuid + ".json");
+    }
+
+    /**
+     * Check if a player's snapshot file already exists
+     *
+     * @param playerFile the File object representing the player's snapshot file
+     * @param player     the Player object
+     * @param session    the LobbySession the player is attempting to join
+     * @return true if the player's snapshot file already exists, false
+     *         otherwise
+     */
+    private boolean checkExistingPlayerFile(File playerFile, Player player, LobbySession session) {
+        if (playerFile.exists()) {
+            player.sendMessage("§c A saved state already exists for your account. "
+                    + "You cannot join a lobby until your previous session has been resolved.");
+            LOGGER.log(Level.WARNING,
+                    "[TheShrouded] Player {0} ({1}) attempted to join session {2} but their player file already exists: {3}",
+                    new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName(),
+                            playerFile.getAbsolutePath() });
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns {@code true} if the player is currently inside any lobby session.
+     */
+    public boolean isPlayerInSession(Player player) {
+        for (LobbySession session : sessions.values()) {
+            if (session.contains(player.getUniqueId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * Removes a player from whichever lobby session they are currently in.
      *
+     * @param player the Player to remove from their current session
      * @return true if the player was found in a session and removed.
      */
     public boolean removePlayerFromSession(Player player) {
