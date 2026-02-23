@@ -11,7 +11,7 @@ public enum PlayerClass {
     ),
     SURVIVOR(
             "Survivor",
-            "An ordinary player trying to outlast the Shrouded.",
+            "A well-rounded fighter with no special tools. Relies on teamwork and awareness.",
             Material.IRON_CHESTPLATE
     );
 
