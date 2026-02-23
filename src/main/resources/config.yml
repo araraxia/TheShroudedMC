@@ -1,0 +1,25 @@
+# -----------------------------------------------------------------------
+# TheShrouded configuration
+# All cooldown values are in seconds.
+# -----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
+# Resource pack
+# Drop resourcepack.zip into the plugin data folder, then set the IP/port
+# players can reach this server on. The plugin hosts the file itself.
+# -----------------------------------------------------------------------
+resource-pack:
+  enabled: true
+  # The external IP address or hostname players connect to (NOT 0.0.0.0)
+  server-ip: "127.0.0.1"
+  # Port for the built-in HTTP server (must be open in your firewall)
+  port: 8085
+
+# -----------------------------------------------------------------------
+# Class-specific settings
+# -----------------------------------------------------------------------
+survivor:
+  sword-damage-multiplier: 1.0
+  sword-swing-cooldown-seconds: 1.0
+  health-potion-heal-level: 1
+  health-potion-cooldown-seconds: 120
