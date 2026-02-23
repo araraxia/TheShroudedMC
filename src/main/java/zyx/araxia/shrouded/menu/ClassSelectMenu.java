@@ -21,11 +21,14 @@ public class ClassSelectMenu {
      */
     public static void open(Player player) {
         // Round up to the nearest multiple of 9 for inventory size
-        int size = Math.max(9, (int) Math.ceil(PlayerClass.values().length / 9.0) * 9);
+        int size = Math.max(9, (int) Math.ceil(PlayerClass.regularClasses().length / 9.0) * 9);
+
+        // Create a new inventory with a custom holder to identify it later in the click listener
         Inventory inv = Bukkit.createInventory(new ClassMenuHolder(), size,
                 Component.text("Choose Your Class", NamedTextColor.DARK_PURPLE));
 
-        for (PlayerClass cls : PlayerClass.values()) {
+        // Iterate through the PlayerClass values and create an item for each one
+        for (PlayerClass cls : PlayerClass.regularClasses()) {
             ItemStack item = new ItemStack(cls.getIcon());
             ItemMeta meta = item.getItemMeta();
             meta.displayName(Component.text(cls.getDisplayName(), NamedTextColor.GOLD));
