@@ -4,13 +4,13 @@
         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.example</groupId>
-    <artifactId>myfirstplugin</artifactId>
+    <groupId>zyx.araxia</groupId>
+    <artifactId>shrouded</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>MyFirstPlugin</name>
-    <description>A simple first Paper plugin</description>
+    <name>The Shrouded</name>
+    <description>The Hidden:Source but minecraft paper plugin</description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.1-R0.1-SNAPSHOT</version>
+            <version>1.21.11-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
