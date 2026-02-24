@@ -23,12 +23,11 @@ import zyx.araxia.shrouded.TheShrouded;
 
 /**
  * Factory and utility class for all plugin-managed {@link ItemStack}s.
- *
  * <h3>NBT tag scheme</h3>
  * <ul>
  * <li>{@code shrouded:is_shrouded_item} {@code (byte 1)} — present on
- * <em>every</em> item created by this plugin; used for inventory sweeps
- * on session end.</li>
+ * <em>every</em> item created by this plugin; used for inventory sweeps on
+ * session end.</li>
  * <li>{@code shrouded:item_type} {@code (String)} — identifies the specific
  * role of the item (e.g. {@value #TYPE_CLASS_SELECTOR}).</li>
  * <li>{@code shrouded:location_tag} {@code (String)} — identifies the logical
@@ -42,8 +41,7 @@ import zyx.araxia.shrouded.TheShrouded;
  * <li>{@link #createHowToPlayGuide()} — factory method for the how-to-play
  * guide book item.</li>
  * <li>{@link #isShroudedItem(ItemStack)} — returns true if the stack carries
- * the
- * global plugin marker.</li>
+ * the global plugin marker.</li>
  * <li>{@link #isClassSelector(ItemStack)} — returns true if the stack is the
  * class selector item.</li>
  * <li>{@link #removeShroudedItems(Player)} — removes every plugin-tagged item
@@ -65,7 +63,8 @@ import zyx.araxia.shrouded.TheShrouded;
  */
 public final class ShroudedItems {
 
-    private static final Logger LOGGER = JavaPlugin.getPlugin(TheShrouded.class).getLogger();
+    private static final Logger LOGGER = JavaPlugin.getPlugin(TheShrouded.class)
+            .getLogger();
 
     // -------------------------------------------------------------------------
     // NBT keys (namespace "shrouded" is owned by this plugin)
@@ -76,27 +75,31 @@ public final class ShroudedItems {
      * {@code (byte) 1}. Useful for a fast "is this ours?" check without
      * inspecting the item type.
      */
-    public static final NamespacedKey IS_SHROUDED_ITEM = new NamespacedKey("shrouded", "is_shrouded_item");
+    public static final NamespacedKey IS_SHROUDED_ITEM = new NamespacedKey(
+            "shrouded", "is_shrouded_item");
 
     /**
      * Identifies the logical role of an item created by this plugin.
      *
      * @see #TYPE_CLASS_SELECTOR
      */
-    public static final NamespacedKey ITEM_TYPE = new NamespacedKey("shrouded", "item_type");
+    public static final NamespacedKey ITEM_TYPE = new NamespacedKey("shrouded",
+            "item_type");
 
     /**
-     * Tag for location exclusive items to make cleaning inventories
-     * after leaving a specific region easier.
+     * Tag for location exclusive items to make cleaning inventories after
+     * leaving a specific region easier.
      */
-    public static final NamespacedKey LOCATION_TAG = new NamespacedKey("shrouded", "location_tag");
+    public static final NamespacedKey LOCATION_TAG = new NamespacedKey(
+            "shrouded", "location_tag");
 
     /**
      * Identifies which {@link zyx.araxia.shrouded.game.PlayerClass} an item
      * belongs to. Value matches the lower-case enum constant name, e.g.
      * {@value Shrouded#CLASS_VALUE} or {@value Survivor#CLASS_VALUE}.
      */
-    public static final NamespacedKey CLASS_TAG = new NamespacedKey("shrouded", "class_tag");
+    public static final NamespacedKey CLASS_TAG = new NamespacedKey("shrouded",
+            "class_tag");
 
     // -------------------------------------------------------------------------
     // item_type values
@@ -107,6 +110,9 @@ public final class ShroudedItems {
 
     /** Value of {@link #ITEM_TYPE} for the how-to-play guide book. */
     public static final String TYPE_HOW_TO_PLAY = "how_to_play";
+
+    /** Value of {@link #ITEM_TYPE} for the return-to-lobby item. */
+    public static final String TYPE_RETURN_TO_LOBBY = "return_to_lobby";
 
     // -------------------------------------------------------------------------
 
@@ -127,28 +133,30 @@ public final class ShroudedItems {
     // -------------------------------------------------------------------------
 
     /**
-     * Stamps the three standard plugin tags onto {@code meta} in one call.
-     * Used by every factory method to guarantee the global marker,
-     * item-type identifier, and (where applicable) location / class tags are
-     * always written together.
+     * Stamps the three standard plugin tags onto {@code meta} in one call. Used
+     * by every factory method to guarantee the global marker, item-type
+     * identifier, and (where applicable) location / class tags are always
+     * written together.
      *
      * @param meta        the {@link ItemMeta} to tag (mutated in place)
      * @param itemType    value for {@link #ITEM_TYPE}
-     * @param locationTag value for {@link #LOCATION_TAG}, or {@code null} to skip
+     * @param locationTag value for {@link #LOCATION_TAG}, or {@code null} to
+     *                    skip
      * @param classTag    value for {@link #CLASS_TAG}, or {@code null} to skip
      */
-    static void tagItem(ItemMeta meta, String itemType, String locationTag, String classTag) {
-        meta.getPersistentDataContainer()
-                .set(IS_SHROUDED_ITEM, PersistentDataType.BYTE, (byte) 1);
-        meta.getPersistentDataContainer()
-                .set(ITEM_TYPE, PersistentDataType.STRING, itemType);
+    static void tagItem(ItemMeta meta, String itemType, String locationTag,
+            String classTag) {
+        meta.getPersistentDataContainer().set(IS_SHROUDED_ITEM,
+                PersistentDataType.BYTE, (byte) 1);
+        meta.getPersistentDataContainer().set(ITEM_TYPE,
+                PersistentDataType.STRING, itemType);
         if (locationTag != null) {
-            meta.getPersistentDataContainer()
-                    .set(LOCATION_TAG, PersistentDataType.STRING, locationTag);
+            meta.getPersistentDataContainer().set(LOCATION_TAG,
+                    PersistentDataType.STRING, locationTag);
         }
         if (classTag != null) {
-            meta.getPersistentDataContainer()
-                    .set(CLASS_TAG, PersistentDataType.STRING, classTag);
+            meta.getPersistentDataContainer().set(CLASS_TAG,
+                    PersistentDataType.STRING, classTag);
         }
     }
 
@@ -164,16 +172,21 @@ public final class ShroudedItems {
      * @return a new {@link ItemStack} that is never null
      */
     public static ItemStack createClassSelector() {
-        LOGGER.log(Level.FINE, "[TheShrouded] Creating class selector item.", new Object[] {});
+        LOGGER.log(Level.FINE, "[TheShrouded] Creating class selector item.",
+                new Object[] {});
         try {
-            ItemStack item = new ItemStack(Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE);
+            ItemStack item = new ItemStack(
+                    Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE);
             ItemMeta meta = item.getItemMeta();
 
-            meta.displayName(Component.text("Choose Your Class", NamedTextColor.GOLD)
-                    .decoration(TextDecoration.ITALIC, false));
+            meta.displayName(
+                    Component.text("Choose Your Class", NamedTextColor.GOLD)
+                            .decoration(TextDecoration.ITALIC, false));
 
             meta.lore(List.of(
-                    Component.text("Right-click to open the", NamedTextColor.GRAY)
+                    Component
+                            .text("Right-click to open the",
+                                    NamedTextColor.GRAY)
                             .decoration(TextDecoration.ITALIC, false),
                     Component.text("class selection menu.", NamedTextColor.GRAY)
                             .decoration(TextDecoration.ITALIC, false)));
@@ -183,7 +196,8 @@ public final class ShroudedItems {
             item.setItemMeta(meta);
             return item;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error creating class selector item: {0}", e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error creating class selector item: {0}",
+                    e.getMessage());
             return new ItemStack(Material.COBBLESTONE);
         }
     }
@@ -196,18 +210,22 @@ public final class ShroudedItems {
      * @return a new {@link ItemStack} that is never null
      */
     public static ItemStack createHowToPlayGuide() {
-        LOGGER.log(Level.FINE, "[TheShrouded] Creating how-to-play guide item.", new Object[] {});
+        LOGGER.log(Level.FINE, "[TheShrouded] Creating how-to-play guide item.",
+                new Object[] {});
         try {
             ItemStack howToBookItem = new ItemStack(Material.WRITTEN_BOOK);
             BookMeta bookMeta = (BookMeta) howToBookItem.getItemMeta();
 
             // Item display name (shown in inventory tooltip)
-            bookMeta.displayName(Component.text("How to Play", NamedTextColor.AQUA)
-                    .decoration(TextDecoration.ITALIC, false));
+            bookMeta.displayName(
+                    Component.text("How to Play", NamedTextColor.AQUA)
+                            .decoration(TextDecoration.ITALIC, false));
 
-            // Book title and author (shown on the book's cover and opening screen)
+            // Book title and author (shown on the book's cover and opening
+            // screen)
             bookMeta.title(Component.text("How to Play", NamedTextColor.AQUA));
-            bookMeta.author(Component.text("The Shrouded", NamedTextColor.GRAY));
+            bookMeta.author(
+                    Component.text("The Shrouded", NamedTextColor.GRAY));
 
             // Pages — add content here
             bookMeta.addPages(
@@ -220,23 +238,45 @@ public final class ShroudedItems {
                                             """)),
 
                     // Page 2 – how to pick a class
-                    Component.text("Choosing a Class\n\n")
-                            .append(Component
-                                    .text("""
-                                            Right-click the armor template item in your inventory to open the class selection menu.
+                    Component.text("Choosing a Class\n\n").append(Component
+                            .text("""
+                                    Right-click the armor template item in your inventory to open the class selection menu.
 
-                                            Pick a class that suits your playstyle!
-                                            """)));
-            // ToDo: Finish How to Play guide content once game is fleshed out more
+                                    Pick a class that suits your playstyle!
+                                    """)));
+            // ToDo: Finish How to Play guide content once game is fleshed out
+            // more
 
             tagItem(bookMeta, TYPE_HOW_TO_PLAY, LOCATION_LOBBY, null);
 
             howToBookItem.setItemMeta(bookMeta);
             return howToBookItem;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error creating how-to-play guide item: {0}", e.getMessage());
+            LOGGER.log(Level.SEVERE,
+                    "Error creating how-to-play guide item: {0}",
+                    e.getMessage());
             return new ItemStack(Material.COBBLESTONE);
         }
+    }
+
+    /**
+     * Creates the return-to-lobby item: a {@link Material#PAPER} item tagged
+     * with {@link #LOCATION_ARENA_ALIVE} so it is only present while the player
+     * is alive in the arena and is swept on death / session end.
+     *
+     * @return a new {@link ItemStack} that is never null
+     */
+    public static ItemStack createReturnToLobby() {
+        ItemStack item = new ItemStack(Material.PAPER);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(
+                Component.text("Return to Lobby", NamedTextColor.YELLOW)
+                        .decoration(TextDecoration.ITALIC, false));
+        meta.itemName(Component.text("Return to Lobby", NamedTextColor.YELLOW)
+                .decoration(TextDecoration.ITALIC, false));
+        tagItem(meta, TYPE_RETURN_TO_LOBBY, LOCATION_ARENA_ALIVE, null);
+        item.setItemMeta(meta);
+        return item;
     }
 
     // -------------------------------------------------------------------------
@@ -251,8 +291,7 @@ public final class ShroudedItems {
         if (item == null || item.getType().isAir() || !item.hasItemMeta()) {
             return false;
         }
-        return item.getItemMeta()
-                .getPersistentDataContainer()
+        return item.getItemMeta().getPersistentDataContainer()
                 .has(IS_SHROUDED_ITEM, PersistentDataType.BYTE);
     }
 
@@ -263,8 +302,7 @@ public final class ShroudedItems {
         if (!isShroudedItem(item)) {
             return false;
         }
-        String type = item.getItemMeta()
-                .getPersistentDataContainer()
+        String type = item.getItemMeta().getPersistentDataContainer()
                 .get(ITEM_TYPE, PersistentDataType.STRING);
         return TYPE_CLASS_SELECTOR.equals(type);
     }
@@ -273,8 +311,7 @@ public final class ShroudedItems {
         if (!isShroudedItem(item)) {
             return false;
         }
-        String locationTag = item.getItemMeta()
-                .getPersistentDataContainer()
+        String locationTag = item.getItemMeta().getPersistentDataContainer()
                 .get(LOCATION_TAG, PersistentDataType.STRING);
         return LOCATION_LOBBY.equals(locationTag);
     }
@@ -283,8 +320,7 @@ public final class ShroudedItems {
         if (!isShroudedItem(item)) {
             return false;
         }
-        String locationTag = item.getItemMeta()
-                .getPersistentDataContainer()
+        String locationTag = item.getItemMeta().getPersistentDataContainer()
                 .get(LOCATION_TAG, PersistentDataType.STRING);
         return LOCATION_ARENA_ALIVE.equals(locationTag);
     }
@@ -293,8 +329,7 @@ public final class ShroudedItems {
         if (!isShroudedItem(item)) {
             return false;
         }
-        String locationTag = item.getItemMeta()
-                .getPersistentDataContainer()
+        String locationTag = item.getItemMeta().getPersistentDataContainer()
                 .get(LOCATION_TAG, PersistentDataType.STRING);
         return LOCATION_ARENA_SPECTATOR.equals(locationTag);
     }
@@ -304,9 +339,9 @@ public final class ShroudedItems {
     // -------------------------------------------------------------------------
 
     /**
-     * Removes every plugin-tagged item from the player's inventory (all 36
-     * main slots, armour slots, and off-hand). Call this when a player leaves
-     * a session to prevent lobby items from escaping into the world.
+     * Removes every plugin-tagged item from the player's inventory (all 36 main
+     * slots, armour slots, and off-hand). Call this when a player leaves a
+     * session to prevent lobby items from escaping into the world.
      *
      * @param player the online player whose inventory should be swept
      */
@@ -415,7 +450,8 @@ public final class ShroudedItems {
     }
 
     // -------------------------------------------------------------------------
-    // Package-private sweep helper (used by ShroudedClassItems, SurvivorClassItems,
+    // Package-private sweep helper (used by ShroudedClassItems,
+    // SurvivorClassItems,
     // etc.)
     // -------------------------------------------------------------------------
 

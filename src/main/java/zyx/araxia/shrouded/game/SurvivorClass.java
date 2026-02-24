@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import zyx.araxia.shrouded.TheShrouded;
+import zyx.araxia.shrouded.item.ShroudedItems;
 import zyx.araxia.shrouded.item.SurvivorClassItems;
 
 /**
@@ -49,17 +50,35 @@ public class SurvivorClass {
      * @param player the online player to equip
      */
     public void equip(Player player) {
-        double damageMultiplier = plugin.getConfig().getDouble("survivor.sword-damage-multiplier", 1.0);
-        double swingCooldownSeconds = plugin.getConfig().getDouble("survivor.sword-swing-cooldown-seconds", 0.625);
-        int healLevel = plugin.getConfig().getInt("survivor.health-potion-heal-level", 2);
-
+        this.plugin.getLogger().log(
+                java.util.logging.Level.FINE,
+                "Equipping survivor class for player {0}",
+                player.getName());
         // Hotbar
         player.getInventory().setItem(0,
-                SurvivorClassItems.createSurvivorIronSword(damageMultiplier, swingCooldownSeconds));
-        player.getInventory().setItem(1, SurvivorClassItems.createSurvivorHealthSplashPotion1(healLevel));
+                SurvivorClassItems.createSurvivorIronSword());
+        player.getInventory().setItem(1,
+                SurvivorClassItems.createSurvivorHealthSplashPotion1());
+        player.getInventory().setItem(2,
+                SurvivorClassItems.createSurvivorBomb());
+        player.getInventory().setItem(3,
+                SurvivorClassItems.createSurvivorWeb());
+        player.getInventory().setItem(4,
+                SurvivorClassItems.createSurvivorWindCharge());
 
-        // TODO: give remaining kit items as they are implemented
-        // (bomb, web, wind charge, chain armour set, etc.)
+        // Last hotbar slot — utility
+        player.getInventory().setItem(8,
+                ShroudedItems.createReturnToLobby());
+
+        // Armour
+        player.getInventory().setHelmet(
+                SurvivorClassItems.createSurvivorChainHelmet());
+        player.getInventory().setChestplate(
+                SurvivorClassItems.createSurvivorChainChestplate());
+        player.getInventory().setLeggings(
+                SurvivorClassItems.createSurvivorChainLeggings());
+        player.getInventory().setBoots(
+                SurvivorClassItems.createSurvivorChainBoots());
     }
 
     /**

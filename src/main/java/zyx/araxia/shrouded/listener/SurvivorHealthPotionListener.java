@@ -16,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.configuration.file.FileConfiguration;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -29,6 +30,8 @@ import zyx.araxia.shrouded.item.SurvivorClassItems;
  */
 public class SurvivorHealthPotionListener implements Listener {
 
+    private final FileConfiguration fileConfig;
+
     /** Cooldown duration in milliseconds, loaded from config.yml at startup. */
     private final long cooldownMillis;
 
@@ -38,9 +41,11 @@ public class SurvivorHealthPotionListener implements Listener {
     /** Tracks when each player's cooldown expires (epoch milliseconds). */
     private final Map<UUID, Long> cooldownExpiry = new HashMap<>();
 
-    public SurvivorHealthPotionListener(int cooldownTicks) {
-        this.cooldownMillis = cooldownTicks * 50L; // 1 tick = 50 ms
-        this.cooldownTicks = cooldownTicks;
+    public SurvivorHealthPotionListener(FileConfiguration fileConfig) {
+        this.fileConfig = fileConfig;
+        this.cooldownTicks = this.fileConfig
+                .getInt("health-potion-cooldown-ticks");
+        this.cooldownMillis = this.cooldownTicks * 50L; // 1 tick = 50 ms
     }
 
     @EventHandler
@@ -83,7 +88,8 @@ public class SurvivorHealthPotionListener implements Listener {
         // Record expiry for this player's health-potion cooldown specifically
         cooldownExpiry.put(player.getUniqueId(), now + cooldownMillis);
 
-        // Apply a custom "Health Potion Cooldown" indicator effect so the player sees
+        // Apply a custom "Health Potion Cooldown" indicator effect so the
+        // player sees
         // a dedicated icon in the HUD for the cooldown duration.
         // Falls back to Absorption if the data pack hasn't been loaded yet
         // (only possible on the very first server start before a /reload).
@@ -92,8 +98,8 @@ public class SurvivorHealthPotionListener implements Listener {
         if (cooldownEffect == null)
             cooldownEffect = PotionEffectType.ABSORPTION;
         player.addPotionEffect(
-                new PotionEffect(cooldownEffect, cooldownTicks, 0, // amplifier
-                                                                   // 0
+                new PotionEffect(cooldownEffect, this.cooldownTicks, 0, // amplifier
+                        // 0
                         false, // not ambient
                         false, // no particles
                         true // show HUD icon

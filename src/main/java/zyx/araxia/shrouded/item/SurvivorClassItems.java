@@ -9,8 +9,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+
+import zyx.araxia.shrouded.TheShrouded;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -46,7 +49,7 @@ public final class SurvivorClassItems {
         public static final String TYPE_SURVIVOR_HEALTH_SPLASH_POTION_1 = "survivor_health_splash_potion_1";
         public static final String TYPE_SURVIVOR_BOMB = "survivor_bomb";
         public static final String TYPE_SURVIVOR_WEB = "survivor_web";
-        public static final String TYPE_SURVIVAL_WIND_CHARGE = "survivor_wind_charge";
+        public static final String TYPE_SURVIVOR_WIND_CHARGE = "survivor_wind_charge";
         public static final String TYPE_SURVIVOR_CHAIN_HELMET = "survivor_chain_helmet";
         public static final String TYPE_SURVIVOR_CHAIN_CHESTPLATE = "survivor_chain_chestplate";
         public static final String TYPE_SURVIVOR_CHAIN_LEGGINGS = "survivor_chain_leggings";
@@ -58,28 +61,15 @@ public final class SurvivorClassItems {
         // -------------------------------------------------------------------------
         // Factory methods
         // -------------------------------------------------------------------------
-        // TODO: add createXxx() factory methods here as class items are
-        // designed.
-        // Example:
-        // public static ItemStack createTrackerCompass() {
-        // ItemStack item = new ItemStack(Material.COMPASS);
-        // ItemMeta meta = item.getItemMeta();
-        // meta.displayName(...);
-        // ShroudedItems.tagItem(meta, TYPE_TRACKER_COMPASS,
-        // ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
-        // item.setItemMeta(meta);
-        // return item;
-        // }
 
-        /**
-         * @param damageMultiplier     scales the sword's base attack damage
-         *                             (1.0 = no change, 2.0 = double, 0.5 =
-         *                             half)
-         * @param swingCooldownSeconds seconds between attacks; iron sword
-         *                             default is 0.625
-         */
-        public static ItemStack createSurvivorIronSword(double damageMultiplier,
-                        double swingCooldownSeconds) {
+        public static ItemStack createSurvivorIronSword() {
+                JavaPlugin plugin = JavaPlugin.getPlugin(TheShrouded.class);
+                double damageMultiplier = plugin.getConfig().getDouble(
+                                "survivor.sword-damage-multiplier", 1.0);
+
+                double swingCooldownSeconds = plugin.getConfig().getDouble(
+                                "survivor.sword-swing-cooldown-seconds", 0.625);
+                                
                 ItemStack item = new ItemStack(org.bukkit.Material.IRON_SWORD);
                 ItemMeta meta = item.getItemMeta();
                 meta.displayName(Component
@@ -199,13 +189,15 @@ public final class SurvivorClassItems {
                 return item;
         }
 
-        /**
-         * @param healLevel Instant Health level (1 = Instant Health I, 2 = II,
-         *                  …); heals {@code 4 * 2^(healLevel-1)} half-hearts on
-         *                  splash
-         */
-        public static ItemStack createSurvivorHealthSplashPotion1(
-                        int healLevel) {
+        public static ItemStack createSurvivorHealthSplashPotion1() {
+                JavaPlugin plugin = JavaPlugin.getPlugin(TheShrouded.class);
+
+                int healLevel = plugin.getConfig().getInt(
+                                "survivor.health-potion-heal-level", 1);
+
+                int stackSize = plugin.getConfig().getInt(
+                                "survivor.health-potion-stack-size", 1);
+                                
                 ItemStack item = new ItemStack(
                                 org.bukkit.Material.SPLASH_POTION);
                 PotionMeta meta = (PotionMeta) item.getItemMeta();
@@ -226,10 +218,13 @@ public final class SurvivorClassItems {
                                 ShroudedItems.LOCATION_ARENA_ALIVE,
                                 CLASS_VALUE);
                 item.setItemMeta(meta);
+                item.setAmount(stackSize);
                 return item;
         }
 
         public static ItemStack createSurvivorBomb() {
+                int stackSize = JavaPlugin.getPlugin(TheShrouded.class).getConfig()
+                                .getInt("survivor.bomb-stack-size", 1);
                 ItemStack item = new ItemStack(org.bukkit.Material.PITCHER_POD);
                 ItemMeta meta = item.getItemMeta();
                 meta.displayName(Component
@@ -245,6 +240,43 @@ public final class SurvivorClassItems {
                                 ShroudedItems.LOCATION_ARENA_ALIVE,
                                 CLASS_VALUE);
                 item.setItemMeta(meta);
+                item.setAmount(stackSize);
+                return item;
+        }
+
+        public static ItemStack createSurvivorWeb() {
+                int stackSize = JavaPlugin.getPlugin(TheShrouded.class).getConfig()
+                                .getInt("survivor.web-stack-size", 4);
+                ItemStack item = new ItemStack(org.bukkit.Material.COBWEB);
+                ItemMeta meta = item.getItemMeta();
+                meta.displayName(Component
+                                .text("Web Grenade", NamedTextColor.GRAY)
+                                .decoration(TextDecoration.ITALIC, false));
+                meta.itemName(Component.text("Web Grenade", NamedTextColor.GRAY)
+                                .decoration(TextDecoration.ITALIC, false));
+                ShroudedItems.tagItem(meta, TYPE_SURVIVOR_WEB,
+                                ShroudedItems.LOCATION_ARENA_ALIVE,
+                                CLASS_VALUE);
+                item.setItemMeta(meta);
+                item.setAmount(stackSize);
+                return item;
+        }
+
+        public static ItemStack createSurvivorWindCharge() {
+                int stackSize = JavaPlugin.getPlugin(TheShrouded.class).getConfig()
+                                .getInt("survivor.wind-charge-stack-size", 2);
+                ItemStack item = new ItemStack(org.bukkit.Material.WIND_CHARGE);
+                ItemMeta meta = item.getItemMeta();
+                meta.displayName(Component
+                                .text("Wind Charge", NamedTextColor.GRAY)
+                                .decoration(TextDecoration.ITALIC, false));
+                meta.itemName(Component.text("Wind Charge", NamedTextColor.GRAY)
+                                .decoration(TextDecoration.ITALIC, false));
+                ShroudedItems.tagItem(meta, TYPE_SURVIVOR_WIND_CHARGE,
+                                ShroudedItems.LOCATION_ARENA_ALIVE,
+                                CLASS_VALUE);
+                item.setItemMeta(meta);
+                item.setAmount(stackSize);
                 return item;
         }
 

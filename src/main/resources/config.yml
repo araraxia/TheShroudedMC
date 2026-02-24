@@ -16,10 +16,41 @@ resource-pack:
   port: 8085
 
 # -----------------------------------------------------------------------
+# Game settings
+# -----------------------------------------------------------------------
+game:
+  lobby-countdown-seconds: 30
+  lobby-max-players: 8
+  lobby-min-players: 2
+  arena-vote-candidates: 3
+  arena-vote-timeout-seconds: 15
+  match-duration-seconds: 300
+  post-match-duration-seconds: 10
+
+# -----------------------------------------------------------------------
 # Class-specific settings
 # -----------------------------------------------------------------------
+shrouded-class:
+  # The number of seconds after swinging a sword before the next swing can deal damage.
+  sword-swing-cooldown-seconds: .625
+
 survivor:
   sword-damage-multiplier: 1.0
   sword-swing-cooldown-seconds: 1.0
   health-potion-heal-level: 1
   health-potion-cooldown-seconds: 120
+  health-potion-stack-size: 1
+  bomb-stack-size: 1
+  bomb-cooldown-seconds: 60
+  bomb-explosion-radius: 1.5
+  bomb-explosion-damage: 6.0
+  bomb-drag: 0.99
+  bomb-gravity: 0.06
+  bomb-max-speed: 2.0
+  bomb-hitbox-radius: 0.125
+  bomb-max-lifetime-ticks: 60
+  web-cooldown-seconds: 60
+  web-stack-size: 4
+  wind-charge-cooldown-seconds: 120
+  wind-charge-speed: 1.5
+  wind-charge-stack-size: 2
