@@ -1,20 +1,20 @@
 package zyx.araxia.shrouded.listener;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.plugin.java.JavaPlugin;
 
+import zyx.araxia.shrouded.TheShrouded;
 import zyx.araxia.shrouded.item.ShroudedItems;
 import zyx.araxia.shrouded.lobby.LobbyManager;
 import zyx.araxia.shrouded.menu.ClassSelectMenu;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.bukkit.plugin.java.JavaPlugin;
-import zyx.araxia.shrouded.TheShrouded;
 
 /**
  * Listens for right-click interactions with the class-selector item and opens
@@ -61,7 +61,6 @@ public class ClassSelectorItemListener implements Listener {
             LOGGER.log(Level.WARNING, "Player {0} ({1}) attempted to use class selector item outside of a lobby session.",
                     new Object[] { player.getName(), player.getUniqueId() });
             return;
-            // TODO: Run player sweep to remove any items they shouldn't have if they're outside a session but still have the class selector item for some reason
         }
 
         event.setCancelled(true);

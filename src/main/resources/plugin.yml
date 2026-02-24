@@ -49,6 +49,11 @@ commands:
     usage: /shrouded.lobby.spawn <lobby_name> [x y z [yaw pitch]]
     permission: shrouded.admin
     permission-message: You don't have permission to manage lobby settings.
+  "shrouded.arena.spawn":
+    description: Adds a spawn point for a role to an arena at your current location
+    usage: /shrouded.arena.spawn <arena_name> <player|shrouded>
+    permission: shrouded.admin
+    permission-message: You don't have permission to manage arena spawns.
 
 permissions:
   shrouded.admin:

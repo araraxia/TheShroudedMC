@@ -12,13 +12,24 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.title.Title;
 
 import zyx.araxia.shrouded.game.PlayerClass;
+import zyx.araxia.shrouded.game.SurvivorClass;
+import zyx.araxia.shrouded.menu.ArenaVoteMenu;
 
 /**
  * Tracks the players currently inside a lobby and their chosen class. This is a
@@ -40,6 +51,11 @@ public class LobbySession {
     private final String lobbyName;
 
     private BukkitTask countdownTask = null;
+    private BukkitTask roundTask = null;
+    private BukkitTask voteTask = null;
+
+    /** Votes cast during the arena-vote phase (player UUID → chosen arena). */
+    private final Map<UUID, Arena> votes = new HashMap<>();
 
     /** Arenas chosen for the upcoming vote (or the single auto-selected arena). */
     private List<Arena> candidateArenas = new ArrayList<>();
@@ -221,10 +237,24 @@ public class LobbySession {
      */
     public void startMatch() {
         assignClasses();
+
+        // Wipe every online player's inventory and equipment, then apply 1 s
+        // of blindness so they cannot see the arena until they arrive.
+        for (UUID uuid : players.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null || !player.isOnline())
+                continue;
+            player.getInventory().clear();
+            player.getInventory().setHelmet(null);
+            player.getInventory().setChestplate(null);
+            player.getInventory().setLeggings(null);
+            player.getInventory().setBoots(null);
+            player.getInventory().setItemInOffHand(null);
+            player.addPotionEffect(
+                    new PotionEffect(PotionEffectType.BLINDNESS, 20, 0, false, false));
+        }
+
         selectArenas();
-        // TODO: teleport players to arena
-        // TODO: apply class kits
-        // TODO: begin round timer
     }
 
     /**
@@ -259,9 +289,10 @@ public class LobbySession {
             return;
         }
 
-        // Shuffle and take up to 3 candidates
+        // Shuffle and take up to the configured maximum number of candidates
         Collections.shuffle(available, random);
-        int count = Math.min(3, available.size());
+        int maxCandidates = plugin.getConfig().getInt("game.arena-vote-candidates", 3);
+        int count = Math.min(Math.max(maxCandidates, 1), available.size());
         candidateArenas = new ArrayList<>(available.subList(0, count));
 
         // Claim every candidate so other lobbies can't grab them
@@ -291,22 +322,258 @@ public class LobbySession {
      */
     private void beginArenaTransition(Arena arena) {
         logger.log(Level.FINE,
-                "[TheShrouded] Lobby '{0}' beginning transition to arena '{1}'.",
+                "[TheShrouded] Lobby ''{0}'' beginning transition to arena ''{1}''.",
                 new Object[]{lobbyName, arena.getName()});
-        // TODO: teleport players to arena.getSpawnLocation()
+
+        World world = Bukkit.getWorld(arena.getWorld());
+        if (world == null) {
+            logger.log(Level.WARNING,
+                    "Arena world ''{0}'' is not loaded — cannot start match.",
+                    arena.getWorld());
+            return;
+        }
+
+        Location spawnLocation = arena.getSpawnLocation(world);
+        SurvivorClass survivorKit = new SurvivorClass(plugin);
+        int playerSpawnIndex = 0;
+        int shroudedSpawnIndex = 0;
+
+        for (Map.Entry<UUID, PlayerClass> entry : players.entrySet()) {
+            Player player = Bukkit.getPlayer(entry.getKey());
+            if (player == null || !player.isOnline())
+                continue;
+
+            PlayerClass playerClass = entry.getValue();
+
+            // Pick a spawn from the role-appropriate list (round-robin)
+            if (playerClass == PlayerClass.SHROUDED) {
+                spawnLocation = arena.getShroudedSpawnAt(shroudedSpawnIndex++, world);
+            } else {
+                spawnLocation = arena.getPlayerSpawnAt(playerSpawnIndex++, world);
+            }
+
+            // Teleport to arena spawn
+            player.teleport(spawnLocation);
+
+            // Apply class kit
+            if (playerClass == PlayerClass.SURVIVOR) {
+                survivorKit.equip(player);
+            }
+            // TODO: equip SHROUDED kit when ShroudedClass is implemented
+
+            // Announce round start with a title
+            String roleText = playerClass != null ? playerClass.getDisplayName() : "Unknown";
+            player.showTitle(Title.title(
+                    Component.text("Match Started!", NamedTextColor.GOLD),
+                    Component.text("You are the " + roleText, NamedTextColor.YELLOW),
+                    Title.Times.times(
+                            Duration.ofMillis(300),
+                            Duration.ofSeconds(3),
+                            Duration.ofMillis(500))));
+
+            // Stinger sound effect
+            player.playSound(player.getLocation(),
+                    Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.1f);
+        }
+
+        beginRoundTimer(arena);
+    }
+
+    private void beginArenaVote(List<Arena> candidates) {
+        logger.log(Level.FINE,
+                "[TheShrouded] Lobby ''{0}'' starting arena vote with candidates: {1}.",
+                new Object[]{lobbyName,
+                        candidates.stream().map(Arena::getName).toList()});
+
+        votes.clear();
+
+        // Open the vote menu for every online player in this session
+        for (UUID uuid : players.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null && player.isOnline())
+                ArenaVoteMenu.open(player, this, candidates);
+        }
+
+        // Announce
+        Component voteMsg = Component.text("Vote for an arena! You have "
+                + plugin.getConfig().getInt("game.arena-vote-timeout-seconds", 15)
+                + " seconds.", NamedTextColor.AQUA);
+        for (UUID uuid : players.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null && player.isOnline())
+                player.sendActionBar(voteMsg);
+        }
+
+        // Timeout task — resolve when time runs out
+        int timeoutSeconds = plugin.getConfig().getInt("game.arena-vote-timeout-seconds", 15);
+        voteTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                voteTask = null;
+                resolveVote(candidates);
+            }
+        }.runTaskLater(plugin, timeoutSeconds * 20L);
     }
 
     /**
-     * Called when two or three arenas are available and players should vote.
+     * Records a vote for {@code arena} from {@code uuid}. If every player in
+     * the session has now voted the vote is resolved immediately.
      *
-     * @param candidates the arenas presented for the vote.
+     * @param uuid  the voting player's UUID
+     * @param arena the arena they chose
      */
-    private void beginArenaVote(List<Arena> candidates) {
+    public void recordVote(UUID uuid, Arena arena) {
+        if (!players.containsKey(uuid))
+            return;
+        votes.put(uuid, arena);
+        logger.log(Level.FINE, "[TheShrouded] Player {0} voted for arena ''{1}''.",
+                new Object[]{uuid, arena.getName()});
+
+        // Early resolution if everyone has voted
+        if (votes.size() >= players.size()) {
+            if (voteTask != null) {
+                voteTask.cancel();
+                voteTask = null;
+            }
+            resolveVote(candidateArenas);
+        }
+    }
+
+    /**
+     * Tallies votes, picks an arena weighted by vote count (each arena gets a
+     * guaranteed base weight of 1 plus one additional weight per vote cast for
+     * it), releases all unchosen candidates and starts the arena transition.
+     */
+    private void resolveVote(List<Arena> candidates) {
+        // Close any still-open vote menus
+        for (UUID uuid : players.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null && player.isOnline())
+                player.closeInventory();
+        }
+
+        // Count votes per candidate
+        Map<Arena, Integer> voteCounts = new HashMap<>();
+        for (Arena a : candidates)
+            voteCounts.put(a, 0);
+        for (Arena voted : votes.values())
+            voteCounts.merge(voted, 1, Integer::sum);
+
+        // Build weighted pool: 1 base weight + 1 per vote
+        List<Arena> pool = new ArrayList<>();
+        for (Map.Entry<Arena, Integer> entry : voteCounts.entrySet()) {
+            int weight = 1 + entry.getValue();
+            for (int i = 0; i < weight; i++)
+                pool.add(entry.getKey());
+        }
+
+        Arena chosen = pool.get(random.nextInt(pool.size()));
+
         logger.log(Level.FINE,
-                "[TheShrouded] Lobby '{0}' starting arena vote with candidates: {1}.",
-                new Object[]{lobbyName,
-                        candidates.stream().map(Arena::getName).toList()});
-        // TODO: implement voting logic
+                "[TheShrouded] Arena vote resolved for lobby ''{0}'': ''{1}'' chosen.",
+                new Object[]{lobbyName, chosen.getName()});
+
+        // Release every candidate that was not chosen
+        for (Arena a : candidates) {
+            if (!a.getName().equals(chosen.getName()))
+                a.release();
+        }
+
+        // Announce result
+        Component result = Component.text("Arena selected: ", NamedTextColor.GREEN)
+                .append(Component.text(chosen.getName(), NamedTextColor.AQUA));
+        for (UUID uuid : players.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null && player.isOnline())
+                player.sendMessage(result);
+        }
+
+        votes.clear();
+        beginArenaTransition(chosen);
+    }
+
+    /**
+     * Starts a per-second countdown for the active round. Sends action-bar
+     * reminders at 60 s, 30 s, 10 s and each of the final 5 seconds, then
+     * calls {@link #endMatch(Arena)} when time expires.
+     */
+    private void beginRoundTimer(Arena arena) {
+        int durationSeconds = plugin.getConfig()
+                .getInt("game.match-duration-seconds", 300);
+
+        roundTask = new BukkitRunnable() {
+            int secondsRemaining = durationSeconds;
+
+            @Override
+            public void run() {
+                if (secondsRemaining <= 0) {
+                    cancel();
+                    roundTask = null;
+                    endMatch(arena);
+                    return;
+                }
+
+                boolean announce = secondsRemaining == 60
+                        || secondsRemaining == 30
+                        || secondsRemaining == 10
+                        || secondsRemaining <= 5;
+
+                if (announce) {
+                    Component bar = Component.text(
+                            secondsRemaining + "s remaining",
+                            secondsRemaining <= 10
+                                    ? NamedTextColor.RED
+                                    : NamedTextColor.YELLOW);
+                    for (UUID uuid : players.keySet()) {
+                        Player player = Bukkit.getPlayer(uuid);
+                        if (player != null && player.isOnline())
+                            player.sendActionBar(bar);
+                    }
+                }
+
+                secondsRemaining--;
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
+    }
+
+    /**
+     * Ends the current match: notifies all players, releases the arena, and
+     * cancels the round timer if it is still running.
+     */
+    private void endMatch(Arena arena) {
+        logger.log(Level.FINE,
+                "[TheShrouded] Match ended for lobby ''{0}'' in arena ''{1}''.",
+                new Object[]{lobbyName, arena.getName()});
+
+        if (roundTask != null) {
+            roundTask.cancel();
+            roundTask = null;
+        }
+
+        if (voteTask != null) {
+            voteTask.cancel();
+            voteTask = null;
+        }
+
+        Title endTitle = Title.title(
+                Component.text("Round Over!", NamedTextColor.RED),
+                Component.empty(),
+                Title.Times.times(
+                        Duration.ofMillis(300),
+                        Duration.ofSeconds(3),
+                        Duration.ofMillis(500)));
+
+        for (UUID uuid : players.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null || !player.isOnline())
+                continue;
+            player.showTitle(endTitle);
+            player.playSound(player.getLocation(),
+                    Sound.ENTITY_WITHER_DEATH, 0.5f, 1.0f);
+        }
+
+        arena.release();
+        // TODO: return players to lobby / post-game state
     }
 
     /**
