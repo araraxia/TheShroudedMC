@@ -28,11 +28,11 @@ import zyx.araxia.shrouded.listener.ResourcePackSendListener;
 import zyx.araxia.shrouded.listener.ShroudedItemDropListener;
 import zyx.araxia.shrouded.listener.SignClickListener;
 import zyx.araxia.shrouded.listener.ArenaVoteMenuListener;
-import zyx.araxia.shrouded.listener.ArenaVoteMenuListener;
 import zyx.araxia.shrouded.listener.ReturnToLobbyListener;
 import zyx.araxia.shrouded.listener.SurvivorBombListener;
 import zyx.araxia.shrouded.listener.SurvivorHealthPotionListener;
 import zyx.araxia.shrouded.listener.SurvivorWebListener;
+import zyx.araxia.shrouded.listener.ShroudedSwordStabListener;
 import zyx.araxia.shrouded.listener.SurvivorWindChargeListener;
 import zyx.araxia.shrouded.lobby.ArenaManager;
 import zyx.araxia.shrouded.lobby.LobbyManager;
@@ -157,6 +157,9 @@ public class TheShrouded extends JavaPlugin {
                                                 this);
                 getServer().getPluginManager().registerEvents(
                                 new ArenaVoteMenuListener(), this);
+                getServer().getPluginManager().registerEvents(
+                                new ShroudedSwordStabListener(this, lobbyManager),
+                                this);
 
                 // TODO: Iterate through player snapshots and restore any
                 // players still

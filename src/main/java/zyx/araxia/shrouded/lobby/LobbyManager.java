@@ -370,6 +370,19 @@ public class LobbyManager {
     }
 
     /**
+     * Returns the {@link LobbySession} that contains the given player UUID, or
+     * {@code null} if the player is not currently in any session.
+     */
+    public LobbySession getSessionForPlayer(UUID uuid) {
+        for (LobbySession session : sessions.values()) {
+            if (session.contains(uuid)) {
+                return session;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Removes a player from whichever lobby session they are currently in.
      *
      * @param player the Player to remove from their current session
