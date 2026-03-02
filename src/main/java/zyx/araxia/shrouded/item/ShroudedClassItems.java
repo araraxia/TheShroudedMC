@@ -4,9 +4,12 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.Equippable;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -19,18 +22,22 @@ import zyx.araxia.shrouded.TheShrouded;
  * Factory and helpers for items exclusive to the
  * {@link zyx.araxia.shrouded.game.PlayerClass#SHROUDED SHROUDED} class.
  *
- * <p>Every item created here should be tagged via
+ * <p>
+ * Every item created here should be tagged via
  * {@link ShroudedItems#tagItem} with:
  * <ul>
- *   <li>{@link ShroudedItems#IS_SHROUDED_ITEM} = 1</li>
- *   <li>{@link ShroudedItems#CLASS_TAG} = {@value #CLASS_VALUE}</li>
- *   <li>{@link ShroudedItems#LOCATION_TAG} =
- *       {@link ShroudedItems#LOCATION_ARENA_ALIVE}</li>
+ * <li>{@link ShroudedItems#IS_SHROUDED_ITEM} = 1</li>
+ * <li>{@link ShroudedItems#CLASS_TAG} = {@value #CLASS_VALUE}</li>
+ * <li>{@link ShroudedItems#LOCATION_TAG} =
+ * {@link ShroudedItems#LOCATION_ARENA_ALIVE}</li>
  * </ul>
  */
 public final class ShroudedClassItems {
 
-    /** Value written to {@link ShroudedItems#CLASS_TAG} for every item in this class. */
+    /**
+     * Value written to {@link ShroudedItems#CLASS_TAG} for every item in this
+     * class.
+     */
     public static final String CLASS_VALUE = "shrouded";
 
     // -------------------------------------------------------------------------
@@ -49,7 +56,8 @@ public final class ShroudedClassItems {
     public static final String TYPE_SHROUDED_NETH_LEGS = "shrouded_neth_legs";
     public static final String TYPE_SHROUDED_NETH_BOOT = "shrouded_neth_boot";
 
-    private ShroudedClassItems() {}
+    private ShroudedClassItems() {
+    }
 
     // -------------------------------------------------------------------------
     // Factory methods
@@ -89,7 +97,7 @@ public final class ShroudedClassItems {
         item.setItemMeta(meta);
         return item;
     }
-    
+
     public static ItemStack createLeviBombChorusFlower() {
         ItemStack item = new ItemStack(org.bukkit.Material.CHORUS_FLOWER);
         ItemMeta meta = item.getItemMeta();
@@ -106,6 +114,82 @@ public final class ShroudedClassItems {
         return item;
     }
 
+    public static ItemStack createShroudedNethHelmet() {
+        ItemStack item = new ItemStack(org.bukkit.Material.NETHERITE_HELMET);
+        ItemMeta meta = item.getItemMeta();
+
+        meta.displayName(Component.text("Shrouded Helmet", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.itemName(Component.text("Shrouded Helmet", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.setUnbreakable(true);
+
+        ShroudedItems.tagItem(meta, TYPE_SHROUDED_NETH_HELM,
+                ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+        item.setItemMeta(meta);
+        // No model key → armor texture is not rendered on the player
+        item.setData(DataComponentTypes.EQUIPPABLE,
+                Equippable.equippable(EquipmentSlot.HEAD).build());
+        return item;
+    }
+
+    public static ItemStack createShroudedNethChestplate() {
+        ItemStack item = new ItemStack(org.bukkit.Material.NETHERITE_CHESTPLATE);
+        ItemMeta meta = item.getItemMeta();
+
+        meta.displayName(Component.text("Shrouded Chestplate", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.itemName(Component.text("Shrouded Chestplate", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.setUnbreakable(true);
+
+        ShroudedItems.tagItem(meta, TYPE_SHROUDED_NETH_BODY,
+                ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+        item.setItemMeta(meta);
+        // No model key → armor texture is not rendered on the player
+        item.setData(DataComponentTypes.EQUIPPABLE,
+                Equippable.equippable(EquipmentSlot.CHEST).build());
+        return item;
+    }
+
+    public static ItemStack createShroudedNethLeggings() {
+        ItemStack item = new ItemStack(org.bukkit.Material.NETHERITE_LEGGINGS);
+        ItemMeta meta = item.getItemMeta();
+
+        meta.displayName(Component.text("Shrouded Leggings", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.itemName(Component.text("Shrouded Leggings", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.setUnbreakable(true);
+
+        ShroudedItems.tagItem(meta, TYPE_SHROUDED_NETH_LEGS,
+                ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+        item.setItemMeta(meta);
+        // No model key → armor texture is not rendered on the player
+        item.setData(DataComponentTypes.EQUIPPABLE,
+                Equippable.equippable(EquipmentSlot.LEGS).build());
+        return item;
+    }
+
+    public static ItemStack createShroudedNethBoots() {
+        ItemStack item = new ItemStack(org.bukkit.Material.NETHERITE_BOOTS);
+        ItemMeta meta = item.getItemMeta();
+
+        meta.displayName(Component.text("Shrouded Boots", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.itemName(Component.text("Shrouded Boots", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.setUnbreakable(true);
+
+        ShroudedItems.tagItem(meta, TYPE_SHROUDED_NETH_BOOT,
+                ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+        item.setItemMeta(meta);
+        // No model key → armor texture is not rendered on the player
+        item.setData(DataComponentTypes.EQUIPPABLE,
+                Equippable.equippable(EquipmentSlot.FEET).build());
+        return item;
+    }
+
     // -------------------------------------------------------------------------
     // Inspection helpers
     // -------------------------------------------------------------------------
@@ -115,7 +199,8 @@ public final class ShroudedClassItems {
      * {@link ShroudedItems#CLASS_TAG} value for this class.
      */
     public static boolean isItem(ItemStack item) {
-        if (!ShroudedItems.isShroudedItem(item)) return false;
+        if (!ShroudedItems.isShroudedItem(item))
+            return false;
         String tag = item.getItemMeta()
                 .getPersistentDataContainer()
                 .get(ShroudedItems.CLASS_TAG, PersistentDataType.STRING);

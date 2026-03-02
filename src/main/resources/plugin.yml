@@ -4,6 +4,7 @@ main: zyx.araxia.shrouded.TheShrouded
 api-version: "1.21"
 description: A group minigame plugin
 author: AriaC.
+depend: [ProtocolLib]
 
 commands:
   "shrouded.register.lobby":

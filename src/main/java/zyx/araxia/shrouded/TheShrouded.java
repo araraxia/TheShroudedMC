@@ -11,6 +11,9 @@ import java.util.logging.Level;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+
 import zyx.araxia.shrouded.commands.ArenaSpawnCommand;
 import zyx.araxia.shrouded.commands.ArenaLobbyCommand;
 import zyx.araxia.shrouded.commands.ArenaRegisterCommand;
@@ -43,6 +46,7 @@ public class TheShrouded extends JavaPlugin {
         private LobbyManager lobbyManager;
         private ArenaManager arenaManager;
         private ResourcePackServer resourcePackServer;
+        private ShroudedEquipmentSpoofer equipmentSpoofer;
 
         @Override
         public void onLoad() {
@@ -130,6 +134,11 @@ public class TheShrouded extends JavaPlugin {
                         arenaSpawnCmd.setExecutor(
                                         new ArenaSpawnCommand(arenaManager));
 
+                // Register ProtocolLib packet listener for equipment spoofing
+                ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
+                equipmentSpoofer = new ShroudedEquipmentSpoofer(this);
+                protocolManager.addPacketListener(equipmentSpoofer);
+
                 // Register event listeners
                 getServer().getPluginManager().registerEvents(
                                 new SignClickListener(lobbyManager), this);
@@ -215,6 +224,10 @@ public class TheShrouded extends JavaPlugin {
 
         public ArenaManager getArenaManager() {
                 return arenaManager;
+        }
+
+        public ShroudedEquipmentSpoofer getEquipmentSpoofer() {
+                return equipmentSpoofer;
         }
 
         // -------------------------------------------------------------------------

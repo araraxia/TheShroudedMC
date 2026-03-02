@@ -28,6 +28,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 
 import zyx.araxia.shrouded.game.PlayerClass;
+import zyx.araxia.shrouded.game.ShroudedClass;
 import zyx.araxia.shrouded.game.SurvivorClass;
 import zyx.araxia.shrouded.menu.ArenaVoteMenu;
 
@@ -335,6 +336,7 @@ public class LobbySession {
 
         Location spawnLocation = arena.getSpawnLocation(world);
         SurvivorClass survivorKit = new SurvivorClass(plugin);
+        ShroudedClass shroudedKit = new ShroudedClass(plugin);
         int playerSpawnIndex = 0;
         int shroudedSpawnIndex = 0;
 
@@ -359,7 +361,9 @@ public class LobbySession {
             if (playerClass == PlayerClass.SURVIVOR) {
                 survivorKit.equip(player);
             }
-            // TODO: equip SHROUDED kit when ShroudedClass is implemented
+            if (playerClass == PlayerClass.SHROUDED) {
+                shroudedKit.equip(player);
+            }
 
             // Announce round start with a title
             String roleText = playerClass != null ? playerClass.getDisplayName() : "Unknown";
