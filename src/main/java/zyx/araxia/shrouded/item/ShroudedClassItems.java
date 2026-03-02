@@ -4,17 +4,16 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import zyx.araxia.shrouded.TheShrouded;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import zyx.araxia.shrouded.TheShrouded;
 
 /**
  * Factory and helpers for items exclusive to the
@@ -55,16 +54,6 @@ public final class ShroudedClassItems {
     // -------------------------------------------------------------------------
     // Factory methods
     // -------------------------------------------------------------------------
-    // TODO: add createXxx() factory methods here as class items are designed.
-    // Example:
-    //   public static ItemStack createSmokeBomb() {
-    //       ItemStack item = new ItemStack(Material.FIRE_CHARGE);
-    //       ItemMeta meta = item.getItemMeta();
-    //       meta.displayName(...);
-    //       ShroudedItems.tagItem(meta, TYPE_SMOKE_BOMB, ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
-    //       item.setItemMeta(meta);
-    //       return item;
-    //   }
 
     public static ItemStack createShroudedIronSword() {
         JavaPlugin plugin = JavaPlugin.getPlugin(TheShrouded.class);
@@ -76,31 +65,42 @@ public final class ShroudedClassItems {
         ItemStack item = new ItemStack(org.bukkit.Material.IRON_SWORD);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component
-            .text("Shrouded Knife", NamedTextColor.WHITE)
+        meta.displayName(Component.text("Shrouded Knife", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
-        meta.itemName(Component
-            .text("Shrouded Knife", NamedTextColor.WHITE)
+        meta.itemName(Component.text("Shrouded Knife", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
         meta.setUnbreakable(true);
 
         meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
-                    new AttributeModifier(new NamespacedKey(
-                            "shrouded", "shrouded_sword_damage"),
-                            damageMultiplier - 1.0,
-                            AttributeModifier.Operation.MULTIPLY_SCALAR_1,
-                            EquipmentSlotGroup.MAINHAND));
-                            
+                new AttributeModifier(
+                        new NamespacedKey("shrouded", "shrouded_sword_damage"),
+                        damageMultiplier - 1.0,
+                        AttributeModifier.Operation.MULTIPLY_SCALAR_1,
+                        EquipmentSlotGroup.MAINHAND));
+
         double desiredSpeed = 1.0 / swingCooldownSeconds;
-		meta.addAttributeModifier(Attribute.ATTACK_SPEED,
-						new AttributeModifier(new NamespacedKey(
-										"shrouded",
-										"shrouded_sword_speed"),
-										desiredSpeed - 1.6,
-										AttributeModifier.Operation.ADD_NUMBER,
-										EquipmentSlotGroup.MAINHAND));
+        meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(
+                new NamespacedKey("shrouded", "shrouded_sword_speed"),
+                desiredSpeed - 1.6, AttributeModifier.Operation.ADD_NUMBER,
+                EquipmentSlotGroup.MAINHAND));
 
         ShroudedItems.tagItem(meta, TYPE_SHROUDED_IRON_SWORD,
+                ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+        item.setItemMeta(meta);
+        return item;
+    }
+    
+    public static ItemStack createLeviBombChorusFlower() {
+        ItemStack item = new ItemStack(org.bukkit.Material.CHORUS_FLOWER);
+        ItemMeta meta = item.getItemMeta();
+
+        meta.displayName(Component.text("Levitation Bomb", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.itemName(Component.text("Levitation Bomb", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.setUnbreakable(true);
+
+        ShroudedItems.tagItem(meta, TYPE_LEVI_BOMB_CHORUS_FLOWER,
                 ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
         item.setItemMeta(meta);
         return item;

@@ -26,6 +26,7 @@ import zyx.araxia.shrouded.listener.ClassSelectorItemListener;
 import zyx.araxia.shrouded.listener.PlayerQuitListener;
 import zyx.araxia.shrouded.listener.ResourcePackSendListener;
 import zyx.araxia.shrouded.listener.ShroudedItemDropListener;
+import zyx.araxia.shrouded.listener.ShroudedLeviBombListener;
 import zyx.araxia.shrouded.listener.SignClickListener;
 import zyx.araxia.shrouded.listener.ArenaVoteMenuListener;
 import zyx.araxia.shrouded.listener.ReturnToLobbyListener;
@@ -157,6 +158,8 @@ public class TheShrouded extends JavaPlugin {
                                                 this);
                 getServer().getPluginManager().registerEvents(
                                 new ArenaVoteMenuListener(), this);
+                getServer().getPluginManager().registerEvents(
+                                new ShroudedLeviBombListener(this), this);
                 getServer().getPluginManager().registerEvents(
                                 new ShroudedSwordStabListener(this, lobbyManager),
                                 this);

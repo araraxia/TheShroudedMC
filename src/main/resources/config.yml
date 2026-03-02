@@ -45,6 +45,15 @@ shrouded-class:
   sword-stab-knockback-velocity: 5 # Blocks per second
   sword-stab-cooldown-seconds-success: 3.0
   sword-stab-cooldown-seconds-fail: 10.0
+  levi-bomb-cooldown-seconds: 120
+  levi-bomb-explosion-radius: 2.0
+  levi-bomb-levitation-duration-seconds: 3.0
+  levi-bomb-throw-velocity: 1.0
+  levi-bomb-hitbox-radius: 0.125
+  levi-bomb-max-speed: 2.0
+  levi-bomb-max-lifetime-ticks: 60
+  labi-bomb-drag: 0.99
+  labi-bomb-gravity: 0.06
 
 survivor:
   sword-damage-multiplier: 1.0
