@@ -19,7 +19,9 @@ The Shrouded is a near-invisible, highly mobile assassin. Their abilities includ
 | **Invisibility** | Almost entirely invisible to other players at all times. |
 | **Pounce** | Launch in any direction with explosive speed to close gaps or escape combat. |
 | **Wall Cling** | Cling to any surface, including walls and ceilings, to stalk prey from unexpected angles. |
-| **Pin** | Pin a target player in place momentarily, leaving them helpless. |
+| **Levitation Blast** | Cause players to levitate in the air, leaving them helpless. |
+| **Toxic Cloud** | Inflict a non-lethal poison on players in an area infront of you. |
+| **Lights Out** | Apply blindness to all mercenaries in the nearby area. |
 
 ### Mercenary Classes
 

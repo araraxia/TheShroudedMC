@@ -102,13 +102,45 @@ public final class ShroudedClassItems {
         ItemStack item = new ItemStack(org.bukkit.Material.CHORUS_FLOWER);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text("Levitation Bomb", NamedTextColor.WHITE)
+        meta.displayName(Component.text("Levitation Blast", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
-        meta.itemName(Component.text("Levitation Bomb", NamedTextColor.WHITE)
+        meta.itemName(Component.text("Levitation Blast", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
         meta.setUnbreakable(true);
 
         ShroudedItems.tagItem(meta, TYPE_LEVI_BOMB_CHORUS_FLOWER,
+                ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public static ItemStack createPoisonWaveWeathCopLantern() {
+        ItemStack item = new ItemStack(org.bukkit.Material.WEATHERED_COPPER_LANTERN);
+        ItemMeta meta = item.getItemMeta();
+
+        meta.displayName(Component.text("Toxic Cloud", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.itemName(Component.text("Toxic Cloud", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.setUnbreakable(true);
+
+        ShroudedItems.tagItem(meta, TYPE_POISON_WAVE_WEATH_COP_LANTERN,
+                ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public static ItemStack createGlobalBlindSculk() {
+        ItemStack item = new ItemStack(org.bukkit.Material.SCULK);
+        ItemMeta meta = item.getItemMeta();
+
+        meta.displayName(Component.text("Lights Out", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.itemName(Component.text("Lights Out", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.setUnbreakable(true);
+
+        ShroudedItems.tagItem(meta, TYPE_GLOBAL_BLIND_SCULK,
                 ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
         item.setItemMeta(meta);
         return item;

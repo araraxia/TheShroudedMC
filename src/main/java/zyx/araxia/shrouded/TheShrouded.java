@@ -16,6 +16,7 @@ import com.comphenix.protocol.ProtocolManager;
 
 import zyx.araxia.shrouded.commands.ArenaSpawnCommand;
 import zyx.araxia.shrouded.commands.ArenaLobbyCommand;
+import zyx.araxia.shrouded.commands.ReloadConfigCommand;
 import zyx.araxia.shrouded.commands.ArenaRegisterCommand;
 import zyx.araxia.shrouded.commands.LeaveSignRegisterCommand;
 import zyx.araxia.shrouded.commands.LobbyCountdownCommand;
@@ -29,7 +30,9 @@ import zyx.araxia.shrouded.listener.ClassSelectorItemListener;
 import zyx.araxia.shrouded.listener.PlayerQuitListener;
 import zyx.araxia.shrouded.listener.ResourcePackSendListener;
 import zyx.araxia.shrouded.listener.ShroudedItemDropListener;
+import zyx.araxia.shrouded.listener.ShroudedGlobalBlindListener;
 import zyx.araxia.shrouded.listener.ShroudedLeviBombListener;
+import zyx.araxia.shrouded.listener.ShroudedToxicCloudListener;
 import zyx.araxia.shrouded.listener.SignClickListener;
 import zyx.araxia.shrouded.listener.ArenaVoteMenuListener;
 import zyx.araxia.shrouded.listener.ReturnToLobbyListener;
@@ -38,6 +41,7 @@ import zyx.araxia.shrouded.listener.SurvivorHealthPotionListener;
 import zyx.araxia.shrouded.listener.SurvivorWebListener;
 import zyx.araxia.shrouded.listener.ShroudedSwordStabListener;
 import zyx.araxia.shrouded.listener.SurvivorWindChargeListener;
+import zyx.araxia.shrouded.listener.ShroudedEquipmentSpoofer;
 import zyx.araxia.shrouded.lobby.ArenaManager;
 import zyx.araxia.shrouded.lobby.LobbyManager;
 
@@ -88,6 +92,7 @@ public class TheShrouded extends JavaPlugin {
                 final String registerLeaveSignName = "shrouded.register.leavesign";
                 final String lobbySpawnName = "shrouded.lobby.spawn";
                 final String arenaSpawnName = "shrouded.arena.spawn";
+                final String reloadConfigName = "shrouded.reloadconfig";
                 PluginCommand lobbyRegisterCmd = getCommand(registerLobbyName);
                 PluginCommand signRegisterCmd = getCommand(registerSignName);
                 PluginCommand arenaRegisterCmd = getCommand(registerArenaName);
@@ -101,6 +106,7 @@ public class TheShrouded extends JavaPlugin {
                                 registerLeaveSignName);
                 PluginCommand lobbySpawnCmd = getCommand(lobbySpawnName);
                 PluginCommand arenaSpawnCmd = getCommand(arenaSpawnName);
+                PluginCommand reloadConfigCmd = getCommand(reloadConfigName);
                 if (lobbyRegisterCmd != null)
                         lobbyRegisterCmd.setExecutor(new LobbyRegisterCommand(
                                         this, lobbyManager));
@@ -133,6 +139,9 @@ public class TheShrouded extends JavaPlugin {
                 if (arenaSpawnCmd != null)
                         arenaSpawnCmd.setExecutor(
                                         new ArenaSpawnCommand(arenaManager));
+                if (reloadConfigCmd != null)
+                        reloadConfigCmd.setExecutor(
+                                        new ReloadConfigCommand(this));
 
                 // Register ProtocolLib packet listener for equipment spoofing
                 ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
@@ -169,6 +178,11 @@ public class TheShrouded extends JavaPlugin {
                                 new ArenaVoteMenuListener(), this);
                 getServer().getPluginManager().registerEvents(
                                 new ShroudedLeviBombListener(this), this);
+                getServer().getPluginManager().registerEvents(
+                                new ShroudedToxicCloudListener(this), this);
+                getServer().getPluginManager().registerEvents(
+                                new ShroudedGlobalBlindListener(this, arenaManager),
+                                this);
                 getServer().getPluginManager().registerEvents(
                                 new ShroudedSwordStabListener(this, lobbyManager),
                                 this);

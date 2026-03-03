@@ -58,7 +58,9 @@ public class ShroudedClass {
 
         // Hotbar
         player.getInventory().setItem(0, ShroudedClassItems.createShroudedIronSword());
-        player.getInventory().setItem(1, ShroudedClassItems.createLeviBombChorusFlower());
+        player.getInventory().setItem(2, ShroudedClassItems.createLeviBombChorusFlower());
+        player.getInventory().setItem(3, ShroudedClassItems.createPoisonWaveWeathCopLantern());
+        player.getInventory().setItem(4, ShroudedClassItems.createGlobalBlindSculk());
 
         // Last hotbar slot — utility
         player.getInventory().setItem(8, ShroudedItems.createReturnToLobby());

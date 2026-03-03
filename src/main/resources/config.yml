@@ -54,6 +54,44 @@ shrouded-class:
   levi-bomb-max-lifetime-ticks: 60
   labi-bomb-drag: 0.99
   labi-bomb-gravity: 0.06
+  toxic-cloud-cooldown-seconds: 120
+  toxic-cloud-poison-dot-duration-seconds: 5.0
+  toxic-cloud-cloud-dot-damage: 1.0
+  toxic-cloud-cloud-dot-interval-seconds: 1.0
+  toxic-cloud-hitbox-1-radius: 1.0
+  toxic-cloud-hitbox-2-radius: 2.0
+  toxic-cloud-hitbox-3-radius: 3.0
+  toxic-cloud-hitbox-1-range: 2.0 # Distance for the center of the cloud from the player
+  toxic-cloud-hitbox-2-range: 5.0
+  toxic-cloud-hitbox-3-range: 8.0
+  toxic-cloud-hitbox-1-duration-seconds: 5
+  toxic-cloud-hitbox-2-duration-seconds: 7
+  toxic-cloud-hitbox-3-duration-seconds: 10
+  toxic-cloud-hitbox-1-spawn-delay-ticks: 5
+  toxic-cloud-hitbox-2-spawn-delay-ticks: 15
+  toxic-cloud-hitbox-3-spawn-delay-ticks: 30
+  toxic-cloud-particle-useForce: true
+  toxic-cloud-particle-primary-enum: "ENTITY_EFFECT"
+  toxic-cloud-particle-primary-color-a: 0.35
+  toxic-cloud-particle-primary-color-r: 120
+  toxic-cloud-particle-primary-color-g: 255
+  toxic-cloud-particle-primary-color-b: 120
+  toxic-cloud-particle-primary-hitbox-1-count: 20
+  toxic-cloud-particle-primary-hitbox-2-count: 40
+  toxic-cloud-particle-primary-hitbox-3-count: 60
+  toxic-cloud-particle-secondary-enum: "COPPER_FIRE_FLAME"
+  toxic-cloud-particle-secondary-color-a: 0.35
+  toxic-cloud-particle-secondary-color-r: 120
+  toxic-cloud-particle-secondary-color-g: 255
+  toxic-cloud-particle-secondary-color-b: 120
+  toxic-cloud-particle-secondary-hitbox-1-count: 10
+  toxic-cloud-particle-secondary-hitbox-2-count: 20
+  toxic-cloud-particle-secondary-hitbox-3-count: 30
+  blind-lightsout-cooldown-seconds: 180
+  blind-lightsout-duration-seconds: 3
+  blind-lightsout-itemuse-particle-enum: "SCULK-SOUL"
+  blind-lightsout-blinded-player-particle-enum: "SQUID_INK"
+
 
 survivor:
   sword-damage-multiplier: 1.0

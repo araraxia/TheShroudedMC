@@ -55,6 +55,11 @@ commands:
     usage: /shrouded.arena.spawn <arena_name> <player|shrouded>
     permission: shrouded.admin
     permission-message: You don't have permission to manage arena spawns.
+  "shrouded.reloadconfig":
+    description: Reloads config.yml from disk
+    usage: /shrouded.reloadconfig
+    permission: shrouded.admin
+    permission-message: You don't have permission to reload the config.
 
 permissions:
   shrouded.admin:
