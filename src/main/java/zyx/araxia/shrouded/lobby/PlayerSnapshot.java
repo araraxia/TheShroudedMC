@@ -199,23 +199,42 @@ public class PlayerSnapshot {
     // -------------------------------------------------------------------------
 
     /**
-     * Restores this snapshot onto {@code player}: teleports them to the saved
-     * location, restores inventory, equipment, XP, and potion effects.
+     * Teleports {@code player} to the world and coordinates saved in this
+     * snapshot. If the saved world is no longer loaded the player is instead
+     * sent to the primary world's spawn point as a safe fallback.
      *
-     * @param player the online player to restore
+     * <p>This step must be performed <em>before</em> {@link
+     * #restoreInventoryAndStats(Player)} so that inventory changes are applied
+     * in the correct world, which matters on servers that maintain per-world
+     * inventories.
+     *
+     * @param player the online player to teleport
      */
-    public void restoreTo(Player player) {
-        LOGGER.log(Level.INFO, "Restoring snapshot for player {0} ({1})",
-                new Object[] { player.getName(), player.getUniqueId() });
-        // Flush any items the player may have stashed in the crafting grid
-        // during the session so they cannot smuggle lobby items out.
-        player.closeInventory();
-
-        // Teleport
+    public void teleportToSaved(Player player) {
         org.bukkit.World world = Bukkit.getWorld(worldName);
         if (world != null) {
             player.teleport(new Location(world, x, y, z, yaw, pitch));
+        } else {
+            LOGGER.log(Level.WARNING,
+                    "[TheShrouded] Saved world ''{0}'' is not loaded while restoring {1} — falling back to server spawn.",
+                    new Object[] { worldName, player.getName() });
+            org.bukkit.World fallback = Bukkit.getWorlds().get(0);
+            player.teleport(fallback.getSpawnLocation());
         }
+    }
+
+    /**
+     * Restores the player's inventory, armour, off-hand, XP, and active potion
+     * effects from this snapshot. Does <em>not</em> teleport the player — call
+     * {@link #teleportToSaved(Player)} first so the restore is applied in the
+     * correct world.
+     *
+     * @param player the online player to restore
+     */
+    public void restoreInventoryAndStats(Player player) {
+        // Flush any items the player may have stashed in the crafting grid
+        // during the session so they cannot smuggle lobby items out.
+        player.closeInventory();
 
         PlayerInventory inv = player.getInventory();
         inv.clear();
@@ -254,6 +273,20 @@ public class PlayerSnapshot {
                         new Object[] { data.key, player.getName() });
             }
         }
+    }
+
+    /**
+     * Convenience method that calls {@link #teleportToSaved(Player)} followed
+     * immediately by {@link #restoreInventoryAndStats(Player)}, preserving the
+     * mandatory teleport-first ordering.
+     *
+     * @param player the online player to restore
+     */
+    public void restoreTo(Player player) {
+        LOGGER.log(Level.INFO, "Restoring snapshot for player {0} ({1})",
+                new Object[] { player.getName(), player.getUniqueId() });
+        teleportToSaved(player);
+        restoreInventoryAndStats(player);
         LOGGER.log(Level.INFO, "Snapshot restore complete for player {0} ({1})",
                 new Object[] { player.getName(), player.getUniqueId() });
     }

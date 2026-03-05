@@ -17,6 +17,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -383,7 +384,20 @@ public class LobbyManager {
     }
 
     /**
-     * Removes a player from whichever lobby session they are currently in.
+     * Removes a player from whichever lobby session they are currently in,
+     * then fully restores their pre-lobby state:
+     * <ol>
+     *   <li>All plugin-managed (session) items are stripped from the player.</li>
+     *   <li>The player is teleported to their saved world and location first,
+     *       so that the subsequent inventory restore is applied in the correct
+     *       world (important on servers with per-world inventories).</li>
+     *   <li>Inventory, armour, XP, and potion effects are restored from the
+     *       snapshot JSON file.</li>
+     *   <li>The snapshot file is deleted so the player can rejoin without
+     *       hitting the existing-file guard.</li>
+     * </ol>
+     * Falls back to the primary world's spawn point if the snapshot file is
+     * missing, unreadable, or the saved world is no longer loaded.
      *
      * @param player the Player to remove from their current session
      * @return true if the player was found in a session and removed.
@@ -394,10 +408,254 @@ public class LobbyManager {
                 session.remove(player.getUniqueId());
                 LOGGER.log(Level.INFO, "[TheShrouded] Player {0} ({1}) left lobby session {2}",
                         new Object[] { player.getName(), player.getUniqueId(), session.getLobby().getName() });
+                restorePlayerFromSnapshot(player);
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Reads the player's snapshot file, strips any remaining session items,
+     * teleports them to their saved world/location, restores inventory and
+     * stats, then deletes the snapshot file.
+     *
+     * <p>The teleport is intentionally performed <em>before</em> the inventory
+     * restore to guarantee changes are applied in the correct world. If the
+     * snapshot is missing, corrupt, or the saved world is unavailable the
+     * player is sent to the primary world spawn and a warning is logged.
+     *
+     * @param player the online player to restore
+     */
+    private void restorePlayerFromSnapshot(Player player) {
+        File playerFile = getPlayerFile(player);
+
+        if (!playerFile.exists()) {
+            LOGGER.log(Level.WARNING,
+                    "[TheShrouded] No snapshot file found for {0} ({1}) — sending to server spawn.",
+                    new Object[] { player.getName(), player.getUniqueId() });
+            player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+            return;
+        }
+
+        PlayerSnapshot snapshot;
+        try (Reader reader = new FileReader(playerFile, StandardCharsets.UTF_8)) {
+            snapshot = gson.fromJson(reader, PlayerSnapshot.class);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING,
+                    "[TheShrouded] Failed to read snapshot for {0} ({1}): {2} — sending to server spawn.",
+                    new Object[] { player.getName(), player.getUniqueId(), e.getMessage() });
+            player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+            return;
+        }
+
+        if (snapshot == null) {
+            LOGGER.log(Level.WARNING,
+                    "[TheShrouded] Snapshot for {0} ({1}) deserialised as null — sending to server spawn.",
+                    new Object[] { player.getName(), player.getUniqueId() });
+            player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+            return;
+        }
+
+        // 1. Strip all remaining session items before changing worlds so nothing
+        //    leaks into the restored inventory.
+        ShroudedItems.removeShroudedItems(player);
+
+        // 2. Teleport to the saved world first.
+        snapshot.teleportToSaved(player);
+
+        // 3. Now that the player is in the correct world, restore their state.
+        snapshot.restoreInventoryAndStats(player);
+
+        // 4. Delete the file so the player can rejoin without hitting the
+        //    existing-file guard.
+        if (!playerFile.delete()) {
+            LOGGER.log(Level.WARNING,
+                    "[TheShrouded] Could not delete snapshot file for {0} ({1}): {2}",
+                    new Object[] { player.getName(), player.getUniqueId(), playerFile.getAbsolutePath() });
+        }
+
+        LOGGER.log(Level.INFO, "[TheShrouded] Snapshot restored and file deleted for player {0} ({1})",
+                new Object[] { player.getName(), player.getUniqueId() });
+    }
+
+    // -------------------------------------------------------------------------
+    // Startup snapshot recovery
+    // -------------------------------------------------------------------------
+
+    /**
+     * Scans the {@code playerData} directory for orphaned snapshot files left
+     * behind by a crash or hot-reload. For every online player whose snapshot
+     * file is found the restore is scheduled one tick later (to ensure the
+     * player is fully loaded into the world). Offline players' files are left
+     * in place; they will be picked up by
+     * {@link #tryRestoreOrphanedSnapshot(Player)} when those players next join.
+     *
+     * <p>This method must itself be called one tick after
+     * {@code onEnable} so that all worlds have finished loading.
+     */
+    public void recoverOrphanedSnapshots() {
+        File playerDataDir = new File(plugin.getDataFolder(), "playerData");
+        if (!playerDataDir.exists()) {
+            return;
+        }
+
+        File[] files = playerDataDir.listFiles(
+                (dir, name) -> name.endsWith(".json"));
+        if (files == null || files.length == 0) {
+            return;
+        }
+
+        int restored = 0;
+        int offline  = 0;
+        for (File file : files) {
+            String uuidStr = file.getName().replace(".json", "");
+            UUID uuid;
+            try {
+                uuid = UUID.fromString(uuidStr);
+            } catch (IllegalArgumentException e) {
+                LOGGER.log(Level.WARNING,
+                        "[TheShrouded] Skipping unrecognised file in playerData: {0}",
+                        file.getName());
+                continue;
+            }
+
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null && player.isOnline()) {
+                // Player is online (hot-reload scenario): restore after 1 tick
+                // so they are safely in the world before we move them.
+                final Player onlinePlayer = player;
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        restorePlayerFromSnapshot(onlinePlayer);
+                    }
+                }.runTaskLater(plugin, 1L);
+                restored++;
+            } else {
+                // Player is offline — the file remains on disk and will be
+                // consumed by tryRestoreOrphanedSnapshot() on their next login.
+                LOGGER.log(Level.INFO,
+                        "[TheShrouded] Orphaned snapshot found for offline player {0}; will restore on next login.",
+                        uuid);
+                offline++;
+            }
+        }
+
+        if (restored > 0 || offline > 0) {
+            LOGGER.log(Level.INFO,
+                    "[TheShrouded] Snapshot recovery: {0} online player(s) queued for restore, {1} offline player(s) deferred.",
+                    new Object[] { restored, offline });
+        }
+    }
+
+    /**
+     * Synchronously restores every online player that has a snapshot file on
+     * disk. Called from {@code onDisable} where the Bukkit scheduler is no
+     * longer available, so all work must happen on the current thread.
+     *
+     * <p>Two sources of players are handled:
+     * <ol>
+     *   <li>Players currently tracked in an active {@link LobbySession} — they
+     *       were in a lobby or arena when the server began shutting down.</li>
+     *   <li>Any remaining orphaned snapshot files whose owner is online but was
+     *       not in a tracked session (e.g. a file leftover from a prior crash
+     *       that the join-time recovery had not yet processed).</li>
+     * </ol>
+     * Offline players are left with their snapshot files intact so that
+     * {@link #tryRestoreOrphanedSnapshot(Player)} can restore them on their
+     * next login, exactly as it does after a crash.
+     */
+    public void shutdownRestore() {
+        // Collect all online players that need restoring, deduplicating by UUID
+        // in case a player somehow appears in both sources.
+        Map<UUID, Player> toRestore = new HashMap<>();
+
+        // Source 1: players in active sessions.
+        for (LobbySession session : sessions.values()) {
+            for (UUID uuid : session.getPlayers().keySet()) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player != null && player.isOnline()) {
+                    toRestore.put(uuid, player);
+                }
+            }
+        }
+
+        // Source 2: orphaned snapshot files from a prior crash whose owner is
+        // online but not in any tracked session.
+        File playerDataDir = new File(plugin.getDataFolder(), "playerData");
+        if (playerDataDir.exists()) {
+            File[] files = playerDataDir.listFiles(
+                    (dir, name) -> name.endsWith(".json"));
+            if (files != null) {
+                for (File file : files) {
+                    String uuidStr = file.getName().replace(".json", "");
+                    UUID uuid;
+                    try {
+                        uuid = UUID.fromString(uuidStr);
+                    } catch (IllegalArgumentException e) {
+                        LOGGER.log(Level.WARNING,
+                                "[TheShrouded] Skipping unrecognised file in playerData during shutdown: {0}",
+                                file.getName());
+                        continue;
+                    }
+                    Player player = Bukkit.getPlayer(uuid);
+                    if (player != null && player.isOnline()) {
+                        toRestore.putIfAbsent(uuid, player);
+                    }
+                }
+            }
+        }
+
+        if (toRestore.isEmpty()) {
+            return;
+        }
+
+        LOGGER.log(Level.INFO,
+                "[TheShrouded] Shutdown: restoring {0} online player(s) from snapshots.",
+                toRestore.size());
+
+        for (Player player : toRestore.values()) {
+            restorePlayerFromSnapshot(player);
+        }
+
+        LOGGER.log(Level.INFO,
+                "[TheShrouded] Shutdown: all snapshot restores complete.");
+    }
+
+    /**
+     * Returns {@code true} if an orphaned snapshot file exists for this player
+     * and they are not currently tracked inside an active session. Used by the
+     * join listener to decide whether a restore is needed on login.
+     *
+     * @param player the player to check
+     */
+    public boolean hasOrphanedSnapshot(Player player) {
+        // A snapshot that belongs to an active session is not orphaned — the
+        // normal session-leave flow will handle it.
+        if (getSessionForPlayer(player.getUniqueId()) != null) {
+            return false;
+        }
+        return getPlayerFile(player).exists();
+    }
+
+    /**
+     * If {@link #hasOrphanedSnapshot(Player)} is true, restores the player's
+     * pre-lobby state from their snapshot file and deletes the file afterwards.
+     * If no orphaned snapshot exists this method is a safe no-op.
+     *
+     * <p>Called by the join listener one tick after the player connects, after
+     * a crash or server restart left snapshots on disk.
+     *
+     * @param player the online player to potentially restore
+     */
+    public void tryRestoreOrphanedSnapshot(Player player) {
+        if (hasOrphanedSnapshot(player)) {
+            LOGGER.log(Level.INFO,
+                    "[TheShrouded] Restoring orphaned snapshot for {0} ({1}) on login.",
+                    new Object[] { player.getName(), player.getUniqueId() });
+            restorePlayerFromSnapshot(player);
+        }
     }
 
     /**

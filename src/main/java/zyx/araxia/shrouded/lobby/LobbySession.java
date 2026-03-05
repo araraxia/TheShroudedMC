@@ -27,9 +27,11 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 
+import zyx.araxia.shrouded.TheShrouded;
 import zyx.araxia.shrouded.game.PlayerClass;
 import zyx.araxia.shrouded.game.ShroudedClass;
 import zyx.araxia.shrouded.game.SurvivorClass;
+import zyx.araxia.shrouded.item.ShroudedItems;
 import zyx.araxia.shrouded.menu.ArenaVoteMenu;
 
 /**
@@ -574,10 +576,55 @@ public class LobbySession {
             player.showTitle(endTitle);
             player.playSound(player.getLocation(),
                     Sound.ENTITY_WITHER_DEATH, 0.5f, 1.0f);
+
+            restorePlayerToLobbyState(player);
         }
 
         arena.release();
-        // TODO: return players to lobby / post-game state
+
+        votes.clear();
+        candidateArenas = new ArrayList<>();
+
+        // Return to lobby phase: wait a fresh countdown before the next round.
+        if (players.size() >= 2 && countdownTask == null) {
+            startCountdown();
+        }
+    }
+
+    private void restorePlayerToLobbyState(Player player) {
+        // Close inventory FIRST so crafting-grid contents are flushed into the
+        // current world before the player is teleported away.
+        player.closeInventory();
+
+        World lobbyWorld = Bukkit.getWorld(lobby.getWorld());
+        if (lobbyWorld != null) {
+            player.teleport(lobby.getSpawnLocation(lobbyWorld));
+        } else {
+            logger.log(Level.WARNING,
+                    "Lobby world ''{0}'' is not loaded while restoring player ''{1}''.",
+                    new Object[]{lobby.getWorld(), player.getName()});
+        }
+
+        player.getInventory().clear();
+        player.getInventory().setHelmet(null);
+        player.getInventory().setChestplate(null);
+        player.getInventory().setLeggings(null);
+        player.getInventory().setBoots(null);
+        player.getInventory().setItemInOffHand(null);
+
+        for (PotionEffect effect : player.getActivePotionEffects()) {
+            player.removePotionEffect(effect.getType());
+        }
+
+        // Stop the equipment spoofer in case this player was the Shrouded role.
+        // stopSpoofing() is a safe no-op if they were not being spoofed.
+        ((TheShrouded) plugin).getEquipmentSpoofer().stopSpoofing(player);
+
+        // Reset the class to null so the player is prompted to re-select for
+        // the next round, and so assignClasses() treats them as unassigned.
+        players.put(player.getUniqueId(), null);
+
+        player.getInventory().setItem(0, ShroudedItems.createClassSelector());
     }
 
     /**
