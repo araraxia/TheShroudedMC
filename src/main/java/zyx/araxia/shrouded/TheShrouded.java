@@ -64,6 +64,12 @@ public class TheShrouded extends JavaPlugin {
                 arenaManager = new ArenaManager(this);
                 lobbyManager.setArenaManager(arenaManager);
 
+                // Reset all arenas to their stored state. This clears any
+                // stale runtime flags (inUse, usingLobby) left over from a
+                // mid-session shutdown or hot-reload, and will also perform
+                // block-data restoration once that system is implemented.
+                arenaManager.resetAllArenas();
+
                 // Load config defaults (writes config.yml to disk on first run)
                 saveDefaultConfig();
 

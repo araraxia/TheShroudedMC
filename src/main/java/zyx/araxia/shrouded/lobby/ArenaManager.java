@@ -65,6 +65,41 @@ public class ArenaManager {
     }
 
     /**
+     * Resets every registered arena to its stored data state.
+     *
+     * <p>Called once at plugin startup to guarantee a clean slate regardless
+     * of whether the server was fully restarted or the plugin was hot-reloaded
+     * (where {@code transient} runtime fields such as {@code inUse} would
+     * otherwise retain stale values from the previous enable cycle).
+     *
+     * <p>Currently this:
+     * <ul>
+     *   <li>Calls {@link Arena#release()} on every arena to clear any
+     *       {@code inUse} / {@code usingLobby} state left over from a
+     *       mid-session shutdown or reload.</li>
+     * </ul>
+     *
+     * <p>Future block-data restoration (re-placing modified blocks from the
+     * saved region snapshot) should also be performed here once that system
+     * is implemented.
+     */
+    public void resetAllArenas() {
+        int count = 0;
+        for (Arena arena : arenas.values()) {
+            if (arena.isInUse()) {
+                plugin.getLogger().log(Level.INFO,
+                        "[TheShrouded] Resetting arena ''{0}'' (was claimed by lobby ''{1}'').",
+                        new Object[] { arena.getName(), arena.getUsingLobby() });
+            }
+            arena.release();
+            count++;
+        }
+        plugin.getLogger().log(Level.INFO,
+                "[TheShrouded] Arena reset complete: {0} arena(s) restored to stored data state.",
+                count);
+    }
+
+    /**
      * Adds a player-class spawn point to the named arena and persists the change.
      *
      * @return false if the arena does not exist or the file could not be written.
