@@ -27,9 +27,11 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 
+import zyx.araxia.shrouded.TheShrouded;
 import zyx.araxia.shrouded.game.PlayerClass;
 import zyx.araxia.shrouded.game.ShroudedClass;
 import zyx.araxia.shrouded.game.SurvivorClass;
+import zyx.araxia.shrouded.item.ShroudedItems;
 import zyx.araxia.shrouded.menu.ArenaVoteMenu;
 
 /**
@@ -95,10 +97,9 @@ public class LobbySession {
         players.put(uuid, null);
         joinTimes.put(uuid, Instant.now());
         logger.log(
-            Level.FINE,
-            "Player {0} joined lobby '{1}' (total players: {2}).",
-            new Object[]{player.getName(), lobbyName, players.size()}
-        );
+                Level.FINE,
+                "Player {0} joined lobby '{1}' (total players: {2}).",
+                new Object[] { player.getName(), lobbyName, players.size() });
 
         if (players.size() >= 2 && countdownTask == null) {
             startCountdown();
@@ -118,10 +119,9 @@ public class LobbySession {
             countdownTask.cancel();
             countdownTask = null;
             logger.log(
-                Level.FINE,
-                "Countdown for lobby '{0}' cancelled — not enough players.",
-                this.lobbyName
-            );
+                    Level.FINE,
+                    "Countdown for lobby '{0}' cancelled — not enough players.",
+                    this.lobbyName);
         }
     }
 
@@ -180,10 +180,9 @@ public class LobbySession {
     private void startCountdown() {
         long delayTicks = lobby.getStartCountdownSeconds() * 20L;
         plugin.getLogger().log(
-            Level.FINE, 
-            "Scheduling countdown task for lobby '{0}' with delay of {1} ticks.",
-            new Object[]{lobby.getName(), delayTicks}
-        );
+                Level.FINE,
+                "Scheduling countdown task for lobby '{0}' with delay of {1} ticks.",
+                new Object[] { lobby.getName(), delayTicks });
 
         countdownTask = new BukkitRunnable() {
             @Override
@@ -202,10 +201,9 @@ public class LobbySession {
         Instant latestJoin = getLatestJoinTime();
         if (latestJoin != null && Duration.between(latestJoin, Instant.now()).getSeconds() < 15) {
             logger.log(
-                Level.FINE,
-                "Recent join detected for lobby '{0}', rescheduling countdown by 5 seconds.",
-                lobbyName
-            );
+                    Level.FINE,
+                    "Recent join detected for lobby '{0}', rescheduling countdown by 5 seconds.",
+                    lobbyName);
             countdownTask = new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -216,7 +214,7 @@ public class LobbySession {
         }
 
         countdownTask = null;
-        startMatch();
+        selectArenas();
     }
 
     /**
@@ -228,33 +226,6 @@ public class LobbySession {
             countdownTask.cancel();
             countdownTask = null;
         }
-        startMatch();
-    }
-
-    /**
-     * Starts the game session: assigns classes and performs any other
-     * setup needed to begin the round.
-     * Add future game-start calls here (e.g. teleport players, spawn items).
-     */
-    public void startMatch() {
-        assignClasses();
-
-        // Wipe every online player's inventory and equipment, then apply 1 s
-        // of blindness so they cannot see the arena until they arrive.
-        for (UUID uuid : players.keySet()) {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player == null || !player.isOnline())
-                continue;
-            player.getInventory().clear();
-            player.getInventory().setHelmet(null);
-            player.getInventory().setChestplate(null);
-            player.getInventory().setLeggings(null);
-            player.getInventory().setBoots(null);
-            player.getInventory().setItemInOffHand(null);
-            player.addPotionEffect(
-                    new PotionEffect(PotionEffectType.BLINDNESS, 20, 0, false, false));
-        }
-
         selectArenas();
     }
 
@@ -303,12 +274,12 @@ public class LobbySession {
 
         logger.log(Level.FINE,
                 "Lobby '{0}' selected {1} arena candidate(s): {2}.",
-                new Object[]{lobbyName, candidateArenas.size(),
-                        candidateArenas.stream().map(Arena::getName).toList()});
+                new Object[] { lobbyName, candidateArenas.size(),
+                        candidateArenas.stream().map(Arena::getName).toList() });
 
         if (candidateArenas.size() == 1) {
             // Only one option — skip the vote and move straight to arena transition
-            beginArenaTransition(candidateArenas.get(0));
+            doArenaTransition(candidateArenas.get(0));
         } else {
             // Multiple candidates — let players vote
             beginArenaVote(candidateArenas);
@@ -321,10 +292,10 @@ public class LobbySession {
      *
      * @param arena the arena that will be used for this match.
      */
-    private void beginArenaTransition(Arena arena) {
+    private void doArenaTransition(Arena arena) {
         logger.log(Level.FINE,
                 "[TheShrouded] Lobby ''{0}'' beginning transition to arena ''{1}''.",
-                new Object[]{lobbyName, arena.getName()});
+                new Object[] { lobbyName, arena.getName() });
 
         World world = Bukkit.getWorld(arena.getWorld());
         if (world == null) {
@@ -332,6 +303,20 @@ public class LobbySession {
                     "Arena world ''{0}'' is not loaded — cannot start match.",
                     arena.getWorld());
             return;
+        }
+
+        for (UUID uuid : players.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null || !player.isOnline())
+                continue;
+            player.getInventory().clear();
+            player.getInventory().setHelmet(null);
+            player.getInventory().setChestplate(null);
+            player.getInventory().setLeggings(null);
+            player.getInventory().setBoots(null);
+            player.getInventory().setItemInOffHand(null);
+            player.addPotionEffect(
+                    new PotionEffect(PotionEffectType.BLINDNESS, 20, 0, false, false));
         }
 
         Location spawnLocation = arena.getSpawnLocation(world);
@@ -386,8 +371,8 @@ public class LobbySession {
     private void beginArenaVote(List<Arena> candidates) {
         logger.log(Level.FINE,
                 "[TheShrouded] Lobby ''{0}'' starting arena vote with candidates: {1}.",
-                new Object[]{lobbyName,
-                        candidates.stream().map(Arena::getName).toList()});
+                new Object[] { lobbyName,
+                        candidates.stream().map(Arena::getName).toList() });
 
         votes.clear();
 
@@ -431,7 +416,7 @@ public class LobbySession {
             return;
         votes.put(uuid, arena);
         logger.log(Level.FINE, "[TheShrouded] Player {0} voted for arena ''{1}''.",
-                new Object[]{uuid, arena.getName()});
+                new Object[] { uuid, arena.getName() });
 
         // Early resolution if everyone has voted
         if (votes.size() >= players.size()) {
@@ -475,7 +460,7 @@ public class LobbySession {
 
         logger.log(Level.FINE,
                 "[TheShrouded] Arena vote resolved for lobby ''{0}'': ''{1}'' chosen.",
-                new Object[]{lobbyName, chosen.getName()});
+                new Object[] { lobbyName, chosen.getName() });
 
         // Release every candidate that was not chosen
         for (Arena a : candidates) {
@@ -493,7 +478,7 @@ public class LobbySession {
         }
 
         votes.clear();
-        beginArenaTransition(chosen);
+        doArenaTransition(chosen);
     }
 
     /**
@@ -543,11 +528,12 @@ public class LobbySession {
     /**
      * Ends the current match: notifies all players, releases the arena, and
      * cancels the round timer if it is still running.
+     * TODO: Add event listener for player deaths so the match can end immediately when all survivors are dead, instead of waiting for the timer to run out.
      */
     private void endMatch(Arena arena) {
         logger.log(Level.FINE,
                 "[TheShrouded] Match ended for lobby ''{0}'' in arena ''{1}''.",
-                new Object[]{lobbyName, arena.getName()});
+                new Object[] { lobbyName, arena.getName() });
 
         if (roundTask != null) {
             roundTask.cancel();
@@ -574,34 +560,54 @@ public class LobbySession {
             player.showTitle(endTitle);
             player.playSound(player.getLocation(),
                     Sound.ENTITY_WITHER_DEATH, 0.5f, 1.0f);
+
+            restorePlayerToLobbyState(player);
         }
 
         arena.release();
-        // TODO: return players to lobby / post-game state
+
+        votes.clear();
+        candidateArenas = new ArrayList<>();
+
+        // Return to lobby phase: wait a fresh countdown before the next round.
+        if (players.size() >= 2 && countdownTask == null) {
+            startCountdown();
+        }
     }
 
-    /**
-     * Picks one random player to be the Shrouded. Any remaining player whose
-     * class is still null is randomly assigned a regular class.
-     */
-    private void assignClasses() {
-        List<UUID> playerList = new ArrayList<>(players.keySet());
-        if (playerList.isEmpty()) {
-            return;
+    private void restorePlayerToLobbyState(Player player) {
+        // Close inventory FIRST so crafting-grid contents are flushed into the
+        // current world before the player is teleported away.
+        player.closeInventory();
+
+        World lobbyWorld = Bukkit.getWorld(lobby.getWorld());
+        if (lobbyWorld != null) {
+            player.teleport(lobby.getSpawnLocation(lobbyWorld));
+        } else {
+            logger.log(Level.WARNING,
+                    "Lobby world ''{0}'' is not loaded while restoring player ''{1}''.",
+                    new Object[] { lobby.getWorld(), player.getName() });
         }
 
-        // Assign the Shrouded role to one random player
-        UUID shroudedUuid = playerList.get(random.nextInt(playerList.size()));
-        players.put(shroudedUuid, PlayerClass.SHROUDED);
+        player.getInventory().clear();
+        player.getInventory().setHelmet(null);
+        player.getInventory().setChestplate(null);
+        player.getInventory().setLeggings(null);
+        player.getInventory().setBoots(null);
+        player.getInventory().setItemInOffHand(null);
 
-        // Assign a random regular class to any player who hasn't chosen one
-        PlayerClass[] regularClasses = PlayerClass.regularClasses();
-        for (UUID uuid : playerList) {
-            if (!uuid.equals(shroudedUuid) && players.get(uuid) == null) {
-                players.put(uuid, regularClasses[random.nextInt(regularClasses.length)]);
-            }
+        for (PotionEffect effect : player.getActivePotionEffects()) {
+            player.removePotionEffect(effect.getType());
         }
 
-        plugin.getLogger().log(Level.FINE, "[TheShrouded] Classes assigned for lobby '{0}'.", lobby.getName());
+        // Stop the equipment spoofer in case this player was the Shrouded role.
+        // stopSpoofing() is a safe no-op if they were not being spoofed.
+        ((TheShrouded) plugin).getEquipmentSpoofer().stopSpoofing(player);
+
+        // Reset the class to null so the player is prompted to re-select for
+        // the next round, and so assignClasses() treats them as unassigned.
+        players.put(player.getUniqueId(), null);
+
+        player.getInventory().setItem(0, ShroudedItems.createClassSelector());
     }
 }

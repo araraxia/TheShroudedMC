@@ -35,6 +35,7 @@ import zyx.araxia.shrouded.listener.ShroudedLeviBombListener;
 import zyx.araxia.shrouded.listener.ShroudedToxicCloudListener;
 import zyx.araxia.shrouded.listener.SignClickListener;
 import zyx.araxia.shrouded.listener.ArenaVoteMenuListener;
+import zyx.araxia.shrouded.listener.PlayerJoinListener;
 import zyx.araxia.shrouded.listener.ReturnToLobbyListener;
 import zyx.araxia.shrouded.listener.SurvivorBombListener;
 import zyx.araxia.shrouded.listener.SurvivorHealthPotionListener;
@@ -63,6 +64,12 @@ public class TheShrouded extends JavaPlugin {
                 lobbyManager = new LobbyManager(this);
                 arenaManager = new ArenaManager(this);
                 lobbyManager.setArenaManager(arenaManager);
+
+                // Reset all arenas to their stored state. This clears any
+                // stale runtime flags (inUse, usingLobby) left over from a
+                // mid-session shutdown or hot-reload, and will also perform
+                // block-data restoration once that system is implemented.
+                arenaManager.resetAllArenas();
 
                 // Load config defaults (writes config.yml to disk on first run)
                 saveDefaultConfig();
@@ -192,50 +199,33 @@ public class TheShrouded extends JavaPlugin {
                                 new ShroudedSwordStabListener(this,
                                                 lobbyManager),
                                 this);
+                getServer().getPluginManager().registerEvents(
+                                new PlayerJoinListener(lobbyManager, this), this);
 
-                // TODO: Iterate through player snapshots and restore any
-                // players still
-                // in
-                // lobbies to their pre-lobby state to prevent them from being
-                // stranded
-                // in limbo
-                // until they rejoin the server.
-                // TODO: Restore all Arenas to their pre-game state in case the
-                // plugin
-                // was
-                // disabled mid-session, including unclaiming any claimed arenas
-                // and
-                // resetting
-                // any arena blocks that may have been modified.
+                // Scan the playerData directory for snapshot files left behind
+                // by a crash or hot-reload and restore any affected players that
+                // are already online. Deferred by one tick so all worlds are
+                // guaranteed to be fully loaded before any teleport is issued.
+                getServer().getScheduler().runTaskLater(this, () ->
+                        lobbyManager.recoverOrphanedSnapshots(), 1L);
 
                 getLogger().info("TheShrouded has been enabled!");
         }
 
         @Override
         public void onDisable() {
-                getLogger().info("TheShrouded has been disabled!");
                 if (resourcePackServer != null) {
                         resourcePackServer.stop();
                 }
-                // TODO: Iterate through player snapshots and restore any
-                // players still
-                // in
-                // lobbies to their pre-lobby state to prevent them from being
-                // stranded
-                // in limbo
-                // until they rejoin the server.
-                // TODO: Restore all Arenas to their pre-game state in case the
-                // plugin
-                // was
-                // disabled mid-session, including unclaiming any claimed arenas
-                // and
-                // resetting
-                // any arena blocks that may have been modified.
-                // TODO: Clean up any active sessions, save data, etc.
-                // TODO: Scan player inventories and remove any items with
-                // Shrouded
-                // in-game tags
-                // to prevent smuggling out of the plugin's control.
+
+                // Synchronously restore every online player that has a snapshot
+                // on disk. Must be done here (not via the scheduler) because no
+                // more ticks will run after onDisable returns.
+                if (lobbyManager != null) {
+                        lobbyManager.shutdownRestore();
+                }
+
+                getLogger().info("TheShrouded has been disabled!");
         }
 
         public LobbyManager getLobbyManager() {

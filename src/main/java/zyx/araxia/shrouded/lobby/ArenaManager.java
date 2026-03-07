@@ -19,7 +19,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class ArenaManager {
-    // TODO: Add command to save arena block data to a file that will be used to
     // reload the arena at the start of each match, allowing for block
     // build/break mid-match without permanently altering the arena. This will
     // also allow for easy sharing of arenas between servers and players.
@@ -63,6 +62,41 @@ public class ArenaManager {
             }
         }
         return null;
+    }
+
+    /**
+     * Resets every registered arena to its stored data state.
+     *
+     * <p>Called once at plugin startup to guarantee a clean slate regardless
+     * of whether the server was fully restarted or the plugin was hot-reloaded
+     * (where {@code transient} runtime fields such as {@code inUse} would
+     * otherwise retain stale values from the previous enable cycle).
+     *
+     * <p>Currently this:
+     * <ul>
+     *   <li>Calls {@link Arena#release()} on every arena to clear any
+     *       {@code inUse} / {@code usingLobby} state left over from a
+     *       mid-session shutdown or reload.</li>
+     * </ul>
+     *
+     * <p>Future block-data restoration (re-placing modified blocks from the
+     * saved region snapshot) should also be performed here once that system
+     * is implemented.
+     */
+    public void resetAllArenas() {
+        int count = 0;
+        for (Arena arena : arenas.values()) {
+            if (arena.isInUse()) {
+                plugin.getLogger().log(Level.INFO,
+                        "[TheShrouded] Resetting arena ''{0}'' (was claimed by lobby ''{1}'').",
+                        new Object[] { arena.getName(), arena.getUsingLobby() });
+            }
+            arena.release();
+            count++;
+        }
+        plugin.getLogger().log(Level.INFO,
+                "[TheShrouded] Arena reset complete: {0} arena(s) restored to stored data state.",
+                count);
     }
 
     /**
