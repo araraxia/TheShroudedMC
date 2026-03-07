@@ -39,6 +39,7 @@ import zyx.araxia.shrouded.listener.ReturnToLobbyListener;
 import zyx.araxia.shrouded.listener.SurvivorBombListener;
 import zyx.araxia.shrouded.listener.SurvivorHealthPotionListener;
 import zyx.araxia.shrouded.listener.SurvivorWebListener;
+import zyx.araxia.shrouded.listener.ShroudedLeapSpearListener;
 import zyx.araxia.shrouded.listener.ShroudedSwordStabListener;
 import zyx.araxia.shrouded.listener.SurvivorWindChargeListener;
 import zyx.araxia.shrouded.listener.ShroudedEquipmentSpoofer;
@@ -144,7 +145,8 @@ public class TheShrouded extends JavaPlugin {
                                         new ReloadConfigCommand(this));
 
                 // Register ProtocolLib packet listener for equipment spoofing
-                ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
+                ProtocolManager protocolManager = ProtocolLibrary
+                                .getProtocolManager();
                 equipmentSpoofer = new ShroudedEquipmentSpoofer(this);
                 protocolManager.addPacketListener(equipmentSpoofer);
 
@@ -181,10 +183,14 @@ public class TheShrouded extends JavaPlugin {
                 getServer().getPluginManager().registerEvents(
                                 new ShroudedToxicCloudListener(this), this);
                 getServer().getPluginManager().registerEvents(
-                                new ShroudedGlobalBlindListener(this, arenaManager),
+                                new ShroudedGlobalBlindListener(this,
+                                                arenaManager),
                                 this);
                 getServer().getPluginManager().registerEvents(
-                                new ShroudedSwordStabListener(this, lobbyManager),
+                                new ShroudedLeapSpearListener(this), this);
+                getServer().getPluginManager().registerEvents(
+                                new ShroudedSwordStabListener(this,
+                                                lobbyManager),
                                 this);
 
                 // TODO: Iterate through player snapshots and restore any

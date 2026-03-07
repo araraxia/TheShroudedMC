@@ -91,6 +91,12 @@ shrouded-class:
   blind-lightsout-duration-seconds: 3
   blind-lightsout-itemuse-particle-enum: "SCULK-SOUL"
   blind-lightsout-blinded-player-particle-enum: "SQUID_INK"
+  leap-spear-cooldown-seconds: 2
+  leap-spear-player-launch-velocity: 1.0
+  leap-spear-charge-up-time-ticks: 20
+  leap-spear-launch-sound-volume: 1.0
+  leap-spear-launch-sound-pitch: 1.0
+  leap-spear-launch-sound-enum: "SPEAR_LUNGE"
 
 
 survivor:

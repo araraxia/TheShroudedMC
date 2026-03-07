@@ -73,9 +73,9 @@ public final class ShroudedClassItems {
         ItemStack item = new ItemStack(org.bukkit.Material.IRON_SWORD);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text("Shrouded Knife", NamedTextColor.WHITE)
+        meta.displayName(Component.text("Shrouded Blade", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
-        meta.itemName(Component.text("Shrouded Knife", NamedTextColor.WHITE)
+        meta.itemName(Component.text("Shrouded Blade", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
         meta.setUnbreakable(true);
 
@@ -102,9 +102,9 @@ public final class ShroudedClassItems {
         ItemStack item = new ItemStack(org.bukkit.Material.CHORUS_FLOWER);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text("Levitation Blast", NamedTextColor.WHITE)
+        meta.displayName(Component.text("Gravity Distortion", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
-        meta.itemName(Component.text("Levitation Blast", NamedTextColor.WHITE)
+        meta.itemName(Component.text("Gravity Distortion", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
         meta.setUnbreakable(true);
 
@@ -131,16 +131,32 @@ public final class ShroudedClassItems {
     }
 
     public static ItemStack createGlobalBlindSculk() {
-        ItemStack item = new ItemStack(org.bukkit.Material.SCULK);
+            ItemStack item = new ItemStack(org.bukkit.Material.SCULK);
+            ItemMeta meta = item.getItemMeta();
+
+            meta.displayName(Component.text("Lights Out", NamedTextColor.WHITE)
+                            .decoration(TextDecoration.ITALIC, false));
+            meta.itemName(Component.text("Lights Out", NamedTextColor.WHITE)
+                            .decoration(TextDecoration.ITALIC, false));
+            meta.setUnbreakable(true);
+
+            ShroudedItems.tagItem(meta, TYPE_GLOBAL_BLIND_SCULK,
+                            ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+            item.setItemMeta(meta);
+            return item;
+    }
+
+    public static ItemStack createLeapWoodenSpear() {
+        ItemStack item = new ItemStack(org.bukkit.Material.WOODEN_SWORD);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text("Lights Out", NamedTextColor.WHITE)
+        meta.displayName(Component.text("Leap", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
-        meta.itemName(Component.text("Lights Out", NamedTextColor.WHITE)
+        meta.itemName(Component.text("Leap", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
         meta.setUnbreakable(true);
 
-        ShroudedItems.tagItem(meta, TYPE_GLOBAL_BLIND_SCULK,
+        ShroudedItems.tagItem(meta, TYPE_LEAP_WOODEN_SPEAR,
                 ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
         item.setItemMeta(meta);
         return item;
