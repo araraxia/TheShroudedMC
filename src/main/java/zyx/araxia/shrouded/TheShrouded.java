@@ -14,36 +14,38 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 
-import zyx.araxia.shrouded.commands.ArenaSpawnCommand;
 import zyx.araxia.shrouded.commands.ArenaLobbyCommand;
-import zyx.araxia.shrouded.commands.ReloadConfigCommand;
 import zyx.araxia.shrouded.commands.ArenaRegisterCommand;
+import zyx.araxia.shrouded.commands.ArenaSpawnCommand;
 import zyx.araxia.shrouded.commands.LeaveSignRegisterCommand;
 import zyx.araxia.shrouded.commands.LobbyCountdownCommand;
 import zyx.araxia.shrouded.commands.LobbyForceStartCommand;
 import zyx.araxia.shrouded.commands.LobbyLeaveCommand;
 import zyx.araxia.shrouded.commands.LobbyRegisterCommand;
 import zyx.araxia.shrouded.commands.LobbySpawnCommand;
+import zyx.araxia.shrouded.commands.ReloadConfigCommand;
 import zyx.araxia.shrouded.commands.SignRegisterCommand;
+import zyx.araxia.shrouded.listener.ArenaVoteMenuListener;
 import zyx.araxia.shrouded.listener.ClassSelectMenuListener;
 import zyx.araxia.shrouded.listener.ClassSelectorItemListener;
+import zyx.araxia.shrouded.listener.PlayerJoinListener;
 import zyx.araxia.shrouded.listener.PlayerQuitListener;
 import zyx.araxia.shrouded.listener.ResourcePackSendListener;
-import zyx.araxia.shrouded.listener.ShroudedItemDropListener;
+import zyx.araxia.shrouded.listener.ReturnToLobbyListener;
+import zyx.araxia.shrouded.listener.ShroudedEquipmentSpoofer;
 import zyx.araxia.shrouded.listener.ShroudedGlobalBlindListener;
+import zyx.araxia.shrouded.listener.ShroudedItemDropListener;
+import zyx.araxia.shrouded.listener.ShroudedLeapSpearListener;
 import zyx.araxia.shrouded.listener.ShroudedLeviBombListener;
+import zyx.araxia.shrouded.listener.ShroudedSwordStabListener;
 import zyx.araxia.shrouded.listener.ShroudedToxicCloudListener;
 import zyx.araxia.shrouded.listener.SignClickListener;
-import zyx.araxia.shrouded.listener.ArenaVoteMenuListener;
-import zyx.araxia.shrouded.listener.PlayerJoinListener;
-import zyx.araxia.shrouded.listener.ReturnToLobbyListener;
 import zyx.araxia.shrouded.listener.SurvivorBombListener;
+import zyx.araxia.shrouded.listener.PlayerRespawnListener;
+import zyx.araxia.shrouded.listener.SurvivorDeathListener;
 import zyx.araxia.shrouded.listener.SurvivorHealthPotionListener;
 import zyx.araxia.shrouded.listener.SurvivorWebListener;
-import zyx.araxia.shrouded.listener.ShroudedLeapSpearListener;
-import zyx.araxia.shrouded.listener.ShroudedSwordStabListener;
 import zyx.araxia.shrouded.listener.SurvivorWindChargeListener;
-import zyx.araxia.shrouded.listener.ShroudedEquipmentSpoofer;
 import zyx.araxia.shrouded.lobby.ArenaManager;
 import zyx.araxia.shrouded.lobby.LobbyManager;
 
@@ -158,6 +160,23 @@ public class TheShrouded extends JavaPlugin {
                 protocolManager.addPacketListener(equipmentSpoofer);
 
                 // Register event listeners
+                // TODO: Add playerRespawnEvent to return players to lobby after
+                // death
+                // TODO: Eventually set up a post-death spectator mode instead
+                // of immediate lobby return
+                // TODO: Set up PlayerQuitListener to handle mid-match
+                // disconnects more gracefully (currently treated as deaths, but
+                // ideally the player would be put into spectator mode instead
+                // and allowed to rejoin the match if they reconnect within a
+                // certain time limit). If the final mercenary disconnects, the
+                // match should end immediately with the Shrouded as the winner.
+                // If the Shrouded disconnects, the match should end immediately
+                // with all Survivors as winners.
+                // TODO: Set up PlayerQuitLitener to end match immediately if
+                // the Shrouded disconnects, rather than treating them as a
+                // death and potentially allowing the Survivors to win by
+                // default if the Shrouded leaves mid-match. Handle early leaves
+                // as DC, handle late leaves as death.
                 getServer().getPluginManager().registerEvents(
                                 new SignClickListener(lobbyManager), this);
                 getServer().getPluginManager().registerEvents(
@@ -200,14 +219,21 @@ public class TheShrouded extends JavaPlugin {
                                                 lobbyManager),
                                 this);
                 getServer().getPluginManager().registerEvents(
-                                new PlayerJoinListener(lobbyManager, this), this);
+                                new PlayerJoinListener(lobbyManager, this),
+                                this);
+                getServer().getPluginManager().registerEvents(
+                                new SurvivorDeathListener(lobbyManager), this);
+                getServer().getPluginManager().registerEvents(
+                                new PlayerRespawnListener(lobbyManager), this);
 
                 // Scan the playerData directory for snapshot files left behind
-                // by a crash or hot-reload and restore any affected players that
+                // by a crash or hot-reload and restore any affected players
+                // that
                 // are already online. Deferred by one tick so all worlds are
                 // guaranteed to be fully loaded before any teleport is issued.
-                getServer().getScheduler().runTaskLater(this, () ->
-                        lobbyManager.recoverOrphanedSnapshots(), 1L);
+                getServer().getScheduler().runTaskLater(this,
+                                () -> lobbyManager.recoverOrphanedSnapshots(),
+                                1L);
 
                 getLogger().info("TheShrouded has been enabled!");
         }
