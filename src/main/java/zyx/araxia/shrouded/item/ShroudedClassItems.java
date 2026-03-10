@@ -3,6 +3,7 @@ package zyx.araxia.shrouded.item;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EquipmentSlotGroup;
@@ -50,6 +51,7 @@ public final class ShroudedClassItems {
     public static final String TYPE_POISON_WAVE_WEATH_COP_LANTERN = "shrouded_poison_wave_weath_cop_lantern";
     public static final String TYPE_GLOBAL_BLIND_SCULK = "shrouded_blind_sculk";
     public static final String TYPE_LEAP_WOODEN_SPEAR = "shrouded_leap_spear";
+    public static final String TYPE_LEAP_BOW_ARROW = "shrouded_leap_bow_arrow";
 
     public static final String TYPE_SHROUDED_NETH_HELM = "shrouded_neth_helm";
     public static final String TYPE_SHROUDED_NETH_BODY = "shrouded_neth_body";
@@ -147,7 +149,7 @@ public final class ShroudedClassItems {
     }
 
     public static ItemStack createLeapWoodenSpear() {
-        ItemStack item = new ItemStack(org.bukkit.Material.WOODEN_SWORD);
+        ItemStack item = new ItemStack(org.bukkit.Material.BOW);
         ItemMeta meta = item.getItemMeta();
 
         meta.displayName(Component.text("Leap", NamedTextColor.WHITE)
@@ -155,8 +157,24 @@ public final class ShroudedClassItems {
         meta.itemName(Component.text("Leap", NamedTextColor.WHITE)
                 .decoration(TextDecoration.ITALIC, false));
         meta.setUnbreakable(true);
+        meta.addEnchant(Enchantment.INFINITY, 1, true);
 
         ShroudedItems.tagItem(meta, TYPE_LEAP_WOODEN_SPEAR,
+                ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Creates the single dummy arrow held in the Shrouded player's inventory
+     * so the INFINITY-enchanted leap bow can be drawn. Tagged as a Shrouded
+     * item so it cannot be dropped.
+     */
+    public static ItemStack createLeapBowArrow() {
+        ItemStack item = new ItemStack(org.bukkit.Material.ARROW);
+        ItemMeta meta = item.getItemMeta();
+        meta.setUnbreakable(true);
+        ShroudedItems.tagItem(meta, TYPE_LEAP_BOW_ARROW,
                 ShroudedItems.LOCATION_ARENA_ALIVE, CLASS_VALUE);
         item.setItemMeta(meta);
         return item;

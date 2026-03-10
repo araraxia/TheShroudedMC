@@ -58,12 +58,17 @@ public class ShroudedClass {
 
         // Hotbar
         player.getInventory().setItem(0, ShroudedClassItems.createShroudedIronSword());
+        player.getInventory().setItem(1, ShroudedClassItems.createLeapWoodenSpear());
         player.getInventory().setItem(2, ShroudedClassItems.createLeviBombChorusFlower());
         player.getInventory().setItem(3, ShroudedClassItems.createPoisonWaveWeathCopLantern());
         player.getInventory().setItem(4, ShroudedClassItems.createGlobalBlindSculk());
 
         // Last hotbar slot — utility
         player.getInventory().setItem(8, ShroudedItems.createReturnToLobby());
+
+        // Dummy arrow required by the INFINITY bow — kept outside the hotbar
+        // and tagged as a Shrouded item so it cannot be dropped.
+        player.getInventory().setItem(9, ShroudedClassItems.createLeapBowArrow());
 
         // Armour (invisible to other players via EQUIPPABLE component + spoofer)
         player.getInventory().setHelmet(ShroudedClassItems.createShroudedNethHelmet());
