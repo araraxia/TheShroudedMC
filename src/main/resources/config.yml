@@ -119,3 +119,25 @@ survivor:
   wind-charge-cooldown-seconds: 120
   wind-charge-speed: 1.5
   wind-charge-stack-size: 2
+
+# -----------------------------------------------------------------------
+# End-of-match messages
+# winner-title / loser-title   : large text shown to winners / losers
+# winner-subtitle / loser-subtitle : small text below the title
+# -----------------------------------------------------------------------
+messages:
+  shrouded-killed:
+    winner-title: "Victory!"
+    winner-subtitle: "The Shrouded has been slain!"
+    loser-title: "Defeat!"
+    loser-subtitle: "You were eliminated by the mercenaries."
+  mercenaries-eliminated:
+    winner-title: "Victory!"
+    winner-subtitle: "All mercenaries have fallen!"
+    loser-title: "Defeat!"
+    loser-subtitle: "Your entire team was wiped out."
+  time-expired:
+    winner-title: "Victory!"
+    winner-subtitle: "You survived the time limit!"
+    loser-title: "Defeat!"
+    loser-subtitle: "You ran out of time to eliminate the mercenaries."

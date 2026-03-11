@@ -57,6 +57,7 @@ public class LobbySession {
     private BukkitTask countdownTask = null;
     private BukkitTask roundTask = null;
     private BukkitTask voteTask = null;
+    private BukkitTask postMatchTask = null;
 
     /** Votes cast during the arena-vote phase (player UUID → chosen arena). */
     private final Map<UUID, Arena> votes = new HashMap<>();
@@ -73,7 +74,8 @@ public class LobbySession {
 
     /**
      * Players who died during the active round and must be redirected to the
-     * lobby spawn point when their {@link org.bukkit.event.player.PlayerRespawnEvent}
+     * lobby spawn point when their
+     * {@link org.bukkit.event.player.PlayerRespawnEvent}
      * fires, rather than respawning at the world default.
      */
     private final Set<UUID> pendingLobbyRespawn = new HashSet<>();
@@ -310,6 +312,24 @@ public class LobbySession {
     }
 
     /**
+     * Assigns a random {@link PlayerClass#regularClasses() regular class} to
+     * every player in the session who has not yet chosen one (i.e. whose class
+     * is {@code null}).
+     */
+    private void assignClasses() {
+        PlayerClass[] regular = PlayerClass.regularClasses();
+        for (Map.Entry<UUID, PlayerClass> entry : players.entrySet()) {
+            if (entry.getValue() == null) {
+                PlayerClass assigned = regular[random.nextInt(regular.length)];
+                players.put(entry.getKey(), assigned);
+                logger.log(Level.FINE,
+                        "[TheShrouded] Player {0} had no class selected — auto-assigned {1}.",
+                        new Object[] { entry.getKey(), assigned });
+            }
+        }
+    }
+
+    /**
      * Called when exactly one arena was available (or the vote has concluded).
      * Starts moving players into the arena to begin the round.
      *
@@ -350,8 +370,17 @@ public class LobbySession {
         int playerSpawnIndex = 0;
         int shroudedSpawnIndex = 0;
 
-        // TODO: Run assignClases() to handle any players who haven't picked a class by now, rather than treating them as unassigned. Unassigned players could be randomly assigned to either role, or defaulted to Survivor and forced to play without their kit items.
-        // TODO: Make sure at least one player is randomly assigned to the Shrouded role. No one should be able to select the Shrouded as a choosable class. It should overwrite one player at random.
+        // Assign a random regular class to any player who didn't pick one.
+        assignClasses();
+
+        // Randomly assign the Shrouded role to exactly one player, overwriting
+        // whatever class they had chosen or were auto-assigned.
+        List<UUID> uuids = new ArrayList<>(players.keySet());
+        UUID shroudedUUID = uuids.get(random.nextInt(uuids.size()));
+        players.put(shroudedUUID, PlayerClass.SHROUDED);
+        logger.log(Level.FINE,
+                "[TheShrouded] Player {0} was randomly assigned the Shrouded role for lobby ''{1}''.",
+                new Object[] { shroudedUUID, lobbyName });
 
         for (Map.Entry<UUID, PlayerClass> entry : players.entrySet()) {
             Player player = Bukkit.getPlayer(entry.getKey());
@@ -370,6 +399,9 @@ public class LobbySession {
             }
 
             // Teleport to arena spawn
+            player.setHealth(player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
+            player.setFoodLevel(20);
+            player.setSaturation(20f);
             player.teleport(spawnLocation);
 
             // Apply class kit
@@ -540,7 +572,7 @@ public class LobbySession {
                 if (secondsRemaining <= 0) {
                     cancel();
                     roundTask = null;
-                    endMatch(arena);
+                    endMatch(arena, EndReason.TIME_EXPIRED);
                     return;
                 }
 
@@ -566,12 +598,16 @@ public class LobbySession {
     }
 
     /**
-     * Called when a player dies during an active round. If the dead player was
-     * a {@link PlayerClass#SURVIVOR} and no other alive Survivors remain in the
-     * session, the match is ended immediately via {@link #endMatch(Arena)}.
-     * <p>
+     * Called when a player dies during an active round.
+     * <ul>
+     * <li>If the dead player was the {@link PlayerClass#SHROUDED Shrouded},
+     * the match ends immediately and the mercenaries are rewarded.</li>
+     * <li>If the dead player was a non-Shrouded mercenary and no other
+     * alive mercenaries remain, the match is ended immediately via
+     * {@link #endMatch(Arena)}.</li>
+     * </ul>
      * This method is a no-op when no round is in progress ({@code activeArena
-     * == null}) or when the dead player is not a Survivor.
+     * == null}).
      *
      * @param dead UUID of the player who just died
      */
@@ -584,38 +620,78 @@ public class LobbySession {
         pendingLobbyRespawn.add(dead);
 
         PlayerClass deadClass = players.get(dead);
-        // TODO: Check if the dead player was the Shrouded role instead, and end the match if so. All mercaneries will be winners, the Shrouded player loses.
 
-        // TODO: Change from PlayerClass.SURVIVOR to any non-shrouded class.
-        if (deadClass != PlayerClass.SURVIVOR)
-            return; // only track survivor deaths
+        // If the Shrouded was killed, mercenaries win immediately.
+        if (deadClass != null && deadClass.isShroudedRole()) {
+            rewardMercenaries();
+            endMatch(activeArena, EndReason.SHROUDED_KILLED);
+            return;
+        }
 
-        // Check whether any other Survivor is still alive
+        // Only track deaths of non-Shrouded (mercenary) players.
+        if (deadClass == null || deadClass.isShroudedRole())
+            return;
+
+        // Check whether any other non-Shrouded player is still alive.
         for (Map.Entry<UUID, PlayerClass> entry : players.entrySet()) {
-            if (entry.getValue() != PlayerClass.SURVIVOR)
+            if (entry.getValue() == null || entry.getValue().isShroudedRole())
                 continue;
             if (entry.getKey().equals(dead))
                 continue; // skip the player who just died
             Player p = Bukkit.getPlayer(entry.getKey());
             if (p != null && p.isOnline() && !p.isDead())
-                return; // at least one survivor is still alive
+                return; // at least one mercenary is still alive
         }
 
         logger.log(Level.FINE,
-                "[TheShrouded] All survivors eliminated in lobby ''{0}'' — ending match early.",
+                "[TheShrouded] All mercenaries eliminated in lobby ''{0}'' — ending match early.",
                 lobbyName);
-        endMatch(activeArena);
+        rewardShrouded();
+        endMatch(activeArena, EndReason.ALL_MERCENARIES_KILLED);
     }
 
     /**
-     * Ends the current match: notifies all players, releases the arena, and
-     * cancels the round timer if it is still running.
+     * Reason a match ended — used by {@link #endMatch} to pick the correct
+     * messages.
      */
-    private void endMatch(Arena arena) {
+    private enum EndReason {
+        /** The Shrouded player was killed; mercenaries win. */
+        SHROUDED_KILLED,
+        /** Every mercenary was killed; the Shrouded wins. */
+        ALL_MERCENARIES_KILLED,
+        /** The round timer reached zero; mercenaries win. */
+        TIME_EXPIRED
+    }
+
+    /**
+     * Rewards all surviving mercenaries at the end of a match in which the
+     * Shrouded was eliminated. Currently a placeholder — no rewards are given.
+     */
+    private void rewardMercenaries() {
+        // TODO: Implement mercenary win rewards (e.g. currency, XP, cosmetics).
+    }
+
+    /**
+     * Rewards the Shrouded at the end of a match in which they survived until the
+     * end. Currently a placeholder — no rewards are given.
+     */
+    private void rewardShrouded() {
+        // TODO: Implement Shrouded win rewards (e.g. currency, XP, cosmetics).
+    }
+
+    /**
+     * Ends the current match: notifies all players with role-appropriate win/lose
+     * titles (text loaded from {@code config.yml}), releases the arena, and
+     * cancels the round timer if it is still running.
+     *
+     * @param arena  the arena the match was played in
+     * @param reason why the match ended
+     */
+    private void endMatch(Arena arena, EndReason reason) {
         logger.log(Level.FINE,
-                "[TheShrouded] Match ended for lobby ''{0}'' in arena ''{1}''.",
+                "[TheShrouded] Match ended for lobby ''{0}'' in arena ''{1}'' (reason: {2}).",
                 new Object[] {
-                        lobbyName, arena.getName()
+                        lobbyName, arena.getName(), reason
                 });
 
         activeArena = null;
@@ -630,20 +706,60 @@ public class LobbySession {
             voteTask = null;
         }
 
-        Title endTitle = Title.title(
-                Component.text("Round Over!", NamedTextColor.RED),
-                Component.empty(), Title.Times.times(Duration.ofMillis(300),
-                        Duration.ofSeconds(3), Duration.ofMillis(500)));
+        // Load per-outcome message strings from config.
+        org.bukkit.configuration.ConfigurationSection msgs = plugin.getConfig().getConfigurationSection("messages");
 
-        // TODO: Differentiate win/lose messages based on whether Survivors were eliminated or time ran out. If the Shrouded was killed, they lose and everyone else wins. If time ran out with at least one survivor alive, survivors win and the shrouded loses. If all survivors were killed, the shrouded wins and everyone else loses. For now just show a generic "Round Over" message to everyone.
-        // TODO: Delay post-match lobby return by a few seconds to allow players to see the end title and soak in the victory/defeat for a moment, rather than immediately teleporting them back to the lobby as soon as the match ends.
-        // TODO: Track player win/loss and other metircs in a persistent player profile that can be viewed on a website or via an in-game menu.
+        String winnerTitleText, winnerSubtitle, loserTitleText, loserSubtitle;
+        switch (reason) {
+            case SHROUDED_KILLED -> {
+                winnerTitleText = cfg(msgs, "shrouded-killed.winner-title", "Victory!");
+                winnerSubtitle = cfg(msgs, "shrouded-killed.winner-subtitle", "The Shrouded has been slain!");
+                loserTitleText = cfg(msgs, "shrouded-killed.loser-title", "Defeat!");
+                loserSubtitle = cfg(msgs, "shrouded-killed.loser-subtitle", "You were eliminated by the mercenaries.");
+            }
+            case ALL_MERCENARIES_KILLED -> {
+                winnerTitleText = cfg(msgs, "mercenaries-eliminated.winner-title", "Victory!");
+                winnerSubtitle = cfg(msgs, "mercenaries-eliminated.winner-subtitle", "All mercenaries have fallen!");
+                loserTitleText = cfg(msgs, "mercenaries-eliminated.loser-title", "Defeat!");
+                loserSubtitle = cfg(msgs, "mercenaries-eliminated.loser-subtitle", "Your entire team was wiped out.");
+            }
+            default -> { // TIME_EXPIRED
+                winnerTitleText = cfg(msgs, "time-expired.winner-title", "Victory!");
+                winnerSubtitle = cfg(msgs, "time-expired.winner-subtitle", "You survived the time limit!");
+                loserTitleText = cfg(msgs, "time-expired.loser-title", "Defeat!");
+                loserSubtitle = cfg(msgs, "time-expired.loser-subtitle",
+                        "You ran out of time to eliminate the mercenaries.");
+            }
+        }
 
+        Title.Times times = Title.Times.times(
+                Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(500));
+
+        // TODO: Track player win/loss and other metrics in a persistent player profile
+        // that can be viewed on a website or via an in-game menu.
+
+        // Show titles and play the stinger immediately so players see them right away.
         for (UUID uuid : players.keySet()) {
             Player player = Bukkit.getPlayer(uuid);
             if (player == null || !player.isOnline())
                 continue;
-            player.showTitle(endTitle);
+
+            PlayerClass cls = players.get(uuid);
+            boolean isShrouded = cls != null && cls.isShroudedRole();
+            // Shrouded wins only when ALL_MERCENARIES_KILLED; mercenaries win in all other
+            // cases.
+            boolean isWinner = (reason == EndReason.ALL_MERCENARIES_KILLED) == isShrouded;
+
+            Title title = isWinner
+                    ? Title.title(
+                            Component.text(winnerTitleText, NamedTextColor.GREEN),
+                            Component.text(winnerSubtitle, NamedTextColor.YELLOW),
+                            times)
+                    : Title.title(
+                            Component.text(loserTitleText, NamedTextColor.RED),
+                            Component.text(loserSubtitle, NamedTextColor.YELLOW),
+                            times);
+            player.showTitle(title);
 
             if (player.isDead()) {
                 // Player is still on the death screen; queue them for lobby
@@ -652,19 +768,43 @@ public class LobbySession {
             } else {
                 player.playSound(player.getLocation(), Sound.ENTITY_WITHER_DEATH,
                         0.5f, 1.0f);
-                restorePlayerToLobbyState(player);
             }
         }
 
-        arena.release();
+        // After the post-match delay, return alive players to the lobby and
+        // release the arena.
+        int postMatchDelay = plugin.getConfig()
+                .getInt("game.post-match-duration-seconds", 10);
+        postMatchTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                postMatchTask = null;
+                for (UUID uuid : players.keySet()) {
+                    Player player = Bukkit.getPlayer(uuid);
+                    if (player == null || !player.isOnline() || player.isDead())
+                        continue;
+                    restorePlayerToLobbyState(player);
+                }
 
-        votes.clear();
-        candidateArenas = new ArrayList<>();
+                arena.release();
+                votes.clear();
+                candidateArenas = new ArrayList<>();
 
-        // Return to lobby phase: wait a fresh countdown before the next round.
-        if (players.size() >= 2 && countdownTask == null) {
-            startCountdown();
-        }
+                // Return to lobby phase: wait a fresh countdown before the next round.
+                if (players.size() >= 2 && countdownTask == null) {
+                    startCountdown();
+                }
+            }
+        }.runTaskLater(plugin, postMatchDelay * 20L);
+    }
+
+    /**
+     * Null-safe helper to read a string from the {@code messages} config section.
+     * Falls back to {@code def} when the section is absent or the key is unset.
+     */
+    private String cfg(org.bukkit.configuration.ConfigurationSection section,
+            String key, String def) {
+        return section != null ? section.getString(key, def) : def;
     }
 
     /**
@@ -672,7 +812,8 @@ public class LobbySession {
      * if they were queued for a lobby respawn after dying mid-match,
      * {@code false} otherwise.
      *
-     * <p>Called by {@code PlayerRespawnListener} when the player's respawn
+     * <p>
+     * Called by {@code PlayerRespawnListener} when the player's respawn
      * event fires.
      */
     public boolean consumePendingRespawn(UUID uuid) {
@@ -708,7 +849,8 @@ public class LobbySession {
      * {@code PlayerRespawnListener} immediately before the respawn location is
      * set.
      *
-     * <p>Intentionally omits {@link Player#closeInventory()} (no-op on a dead
+     * <p>
+     * Intentionally omits {@link Player#closeInventory()} (no-op on a dead
      * player) and the teleport (handled via
      * {@link org.bukkit.event.player.PlayerRespawnEvent#setRespawnLocation}).
      */
@@ -728,6 +870,10 @@ public class LobbySession {
 
         players.put(player.getUniqueId(), null);
 
+        player.setHealth(player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
+        player.setFoodLevel(20);
+        player.setSaturation(20f);
+
         player.getInventory().setItem(0, ShroudedItems.createClassSelector());
     }
 
@@ -738,6 +884,9 @@ public class LobbySession {
 
         World lobbyWorld = Bukkit.getWorld(lobby.getWorld());
         if (lobbyWorld != null) {
+            player.setHealth(player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
+            player.setFoodLevel(20);
+            player.setSaturation(20f);
             player.teleport(lobby.getSpawnLocation(lobbyWorld));
         } else {
             logger.log(Level.WARNING,
